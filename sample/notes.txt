@@ -1,0 +1,13 @@
+
+
+// db.adminCommand({flushRouterConfig: true})
+// sh.stopBalancer
+// double check the status 
+
+// mongos> db.databases.find()
+// { "_id" : "social", "primary" : "shard03", "partitioned" : true }
+// mongos> db.collections.find()
+// { "_id" : "social.people", "lastmodEpoch" : ObjectId("58efe1cbd0a3ecd9e541555b"), "lastmod" : ISODate("1970-02-19T17:02:47.296Z"), "dropped" : false, "key" : { "_id" : 1 }, "unique" : false }
+
+
+// sh.startBalancer
