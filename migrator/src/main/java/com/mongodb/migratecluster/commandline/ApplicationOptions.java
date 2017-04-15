@@ -1,6 +1,10 @@
 package com.mongodb.migratecluster.commandline;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.mongodb.migratecluster.utils.ListUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by shyamarjarapu on 4/13/17.
@@ -12,6 +16,7 @@ public class ApplicationOptions {
     private String configFilePath;
     private boolean showHelp;
     private boolean dropTarget;
+    private List<ResourceFilter> blackListFilter;
 
     public ApplicationOptions() {
         sourceCluster = "";
@@ -20,6 +25,7 @@ public class ApplicationOptions {
         configFilePath = "";
         showHelp = false;
         dropTarget = false;
+        setBlackListFilter(new ArrayList<>());
     }
 
 
@@ -76,11 +82,23 @@ public class ApplicationOptions {
         this.dropTarget = dropTarget;
     }
 
+    @JsonProperty("blackListFilter")
+    public List<ResourceFilter> getBlackListFilter() {
+        return blackListFilter;
+    }
+
+    public void setBlackListFilter(List<ResourceFilter> blackListFilter) {
+        this.blackListFilter = blackListFilter;
+    }
+
     @Override
     public String toString() {
         return String.format("{ showHelp : %s, configFilePath: \"%s\", " +
-                " sourceCluster: \"%s\", targetCluster: \"%s\", oplog: \"%s\", drop: %s }",
+                " sourceCluster: \"%s\", targetCluster: \"%s\", " +
+                ", oplog: \"%s\", drop: %s, blackListFilter: %s }",
                 this.isShowHelp(), this.getConfigFilePath(), this.getSourceCluster(),
-                this.getTargetCluster(), this.getOplogStore(), this.isDropTarget());
+                this.getTargetCluster(), this.getOplogStore(), this.isDropTarget(),
+                ListUtils.select(this.getBlackListFilter(), f -> f.toString()));
     }
+
 }

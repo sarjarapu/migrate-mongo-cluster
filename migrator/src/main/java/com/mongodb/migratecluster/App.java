@@ -4,6 +4,7 @@ package com.mongodb.migratecluster;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.ApplicationOptionsLoader;
 import com.mongodb.migratecluster.commandline.InputArgsParser;
+import com.mongodb.migratecluster.migrators.DataMigrator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

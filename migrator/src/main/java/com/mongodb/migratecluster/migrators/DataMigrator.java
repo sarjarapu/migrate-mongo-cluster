@@ -1,12 +1,13 @@
-package com.mongodb.migratecluster;
+package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-import com.mongodb.client.*;
+import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
-import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
  * Created by shyamarjarapu on 4/13/17.
@@ -49,44 +50,18 @@ public class DataMigrator {
         MongoClientURI uri = new MongoClientURI(connectionString);
         MongoClient client = new MongoClient(uri);
 
-        listDatabases(client);
-        listCollections(client, "config");
 
-        MongoDatabase database = client.getDatabase("social");
-        listDocuments(database, "user");
+        ServerMigrator serverMigrator = new ServerMigrator(client);
+
+        try {
+            serverMigrator.migrate(this.appOptions);
+        } catch (AppException e) {
+            e.printStackTrace();
+        }
+
+        // NOTE: I would rather have pub sub of what's being read and who processes it
+        // serverMigrator.migrate(targetServer);
 
         client.close();
-    }
-
-    private void listDatabases(MongoClient client) {
-        logger.debug("");
-        ListDatabasesIterable<Document> databases = client.listDatabases();
-        MongoCursor<Document> dbIterator = databases.iterator();
-        while(dbIterator.hasNext()) {
-            Document document = dbIterator.next();
-            logger.debug(document.toJson());
-        }
-    }
-
-    private void listCollections(MongoClient client, String databaseName) {
-        logger.debug("");
-        MongoDatabase database = client.getDatabase(databaseName);
-        ListCollectionsIterable<Document> collections = database.listCollections();
-        MongoCursor<Document> collIterator = collections.iterator();
-        while(collIterator.hasNext()) {
-            Document document = collIterator.next();
-            logger.debug(document.toJson());
-        }
-    }
-
-    private void listDocuments(MongoDatabase database, String collectionName) {
-        logger.debug("");
-        MongoCollection<Document> collection = database.getCollection(collectionName);
-        // TODO: filter and sort by _id
-        MongoCursor<Document> iterator = collection.find().iterator();
-        while(iterator.hasNext()) {
-            Document document = iterator.next();
-            logger.debug(document.toJson());
-        }
     }
 }
