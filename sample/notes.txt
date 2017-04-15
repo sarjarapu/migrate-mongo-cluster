@@ -11,3 +11,17 @@
 
 
 // sh.startBalancer
+
+
+// http://www.programcreek.com/java-api-examples/index.php?api=com.mongodb.client.MongoCursor
+
+
+number of reader threads / workers 
+each thread reads a collection in a batch of 100 
+while reading each collection spin new batch of threads with id, startIndex, endIndex
+for each reader, span a new writer 
+use writer thread to write the batch of 100, order should not matter here 
+wait for all workers to be completed 
+ 
+rinse and repeat 
+
