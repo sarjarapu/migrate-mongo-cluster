@@ -5,12 +5,17 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.commandline.ResourceFilter;
 import com.mongodb.migratecluster.utils.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.mongodb.migratecluster.utils.ListUtils.select;
+import static com.mongodb.migratecluster.utils.ListUtils.where;
 
 /**
  * Created by shyamarjarapu on 4/13/17.
@@ -48,28 +53,50 @@ public class DataMigrator {
     }
 
     private void readSourceClusterConfigDatabase() {
-        // Use a Connection String
-        String connectionString = String.format("mongodb://%s", this.appOptions.getSourceCluster());
-        MongoClientURI uri = new MongoClientURI(connectionString);
-        MongoClient client = new MongoClient(uri);
+        MongoClient client = getMongoClient();
+        Map<String, List<Resource>> sourceResources = IteratorHelper.getSourceResources(client);
+        Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
 
+        filteredSourceResources.keySet().forEach(k -> {
+            logger.info("{} -> [{}]", k, ListUtils.join(filteredSourceResources.get(k), ','));
+        });
 
         //ServerMigrator serverMigrator = new ServerMigrator(client);
-
 //        try {
             //serverMigrator.migrate(this.appOptions);
-            Map<String, List<Resource>> sourceResources = IteratorHelper.getSourceResources(client);
-
-            sourceResources.keySet().forEach(k -> {
-                logger.info("{} -> [{}]", k, ListUtils.join(sourceResources.get(k), ','));
-            });
 //        } catch (AppException e) {
 //            e.printStackTrace();
 //        }
-
         // NOTE: I would rather have pub sub of what's being read and who processes it
         // serverMigrator.migrate(targetServer);
 
         client.close();
+    }
+
+    private MongoClient getMongoClient() {
+        String connectionString = String.format("mongodb://%s", this.appOptions.getSourceCluster());
+        MongoClientURI uri = new MongoClientURI(connectionString);
+        return new MongoClient(uri);
+    }
+
+    private Map<String, List<Resource>> getFilteredResources(Map<String, List<Resource>> resources) {
+        List<ResourceFilter> blacklist = appOptions.getBlackListFilter();
+        Map<String, List<Resource>> filteredResources = new HashMap<>(resources);
+
+        // for all resources in blacklist remove 'em from filteredResources
+        blacklist.forEach(r -> {
+            String db = r.getDatabase();
+            String coll = r.getCollection();
+            if (filteredResources.containsKey(db)) {
+                if (r.isEntireDatabase()) {
+                    filteredResources.remove(db);
+                }
+                else {
+                    List<Resource> list = filteredResources.get(db);
+                    list.removeIf(i -> i.getCollection().equals(coll));
+                }
+            }
+        });
+        return filteredResources;
     }
 }

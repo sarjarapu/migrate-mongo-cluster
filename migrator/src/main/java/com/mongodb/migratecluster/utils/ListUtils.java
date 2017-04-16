@@ -43,6 +43,8 @@ public class ListUtils {
             sb.append(separator);
             sb.append(item.toString());
         }
-        return sb.substring(1);
+        return (sb.length() > 0)
+                    ? sb.substring(1)
+                    : "";
     }
 }

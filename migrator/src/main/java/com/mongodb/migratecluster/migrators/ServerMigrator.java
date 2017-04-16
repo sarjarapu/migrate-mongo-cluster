@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+import static com.mongodb.migratecluster.utils.ListUtils.*;
+
 /**
  * Created by shyamarjarapu on 4/14/17.
  */
@@ -38,7 +40,7 @@ public class ServerMigrator {
         }
 
         List<Document> filteredDatabases = getDatabaseForProcessing(appOptions);
-        List<DatabaseMigrator> databaseMigrators = ListUtils.select(filteredDatabases,
+        List<DatabaseMigrator> databaseMigrators = select(filteredDatabases,
                 d -> new DatabaseMigrator(client, d));
         databaseMigrators.forEach(d -> {
             try {
@@ -52,13 +54,18 @@ public class ServerMigrator {
     private List<Document> getDatabaseForProcessing(ApplicationOptions appOptions) {
         // loop through databases and check if there filters
         List<ResourceFilter> filters = appOptions.getBlackListFilter();
-        List<ResourceFilter> skipDatabases = ListUtils.where(filters, i -> i.isEntireDatabase());
+        List<String> skipDatabases =
+                select(
+                    where(filters, i -> i.isEntireDatabase()),
+                    d -> d.getDatabase());
 
+
+        return null;
         // load all databases except for full databases that needs skip
-        return ListUtils.where(this.databases, d -> {
-            String db = d.getString("name");
-            return !ListUtils.any(skipDatabases, s -> s.getDatabase().equals(db));
-        });
+//        return where(this.databases, d -> {
+//            String db = d.getString("name");
+//            return !any(skipDatabases, s -> s.getDatabase().equals(db));
+//        });
     }
 
 }
