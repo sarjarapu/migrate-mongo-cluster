@@ -3,13 +3,13 @@ package com.mongodb.migratecluster.migrators;
 import com.mongodb.MongoClient;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
-import com.mongodb.migratecluster.commandline.ResourceFilter;
-import com.mongodb.migratecluster.utils.ListUtils;
-import org.bson.Document;
+import com.mongodb.migratecluster.commandline.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.mongodb.migratecluster.utils.ListUtils.*;
 
@@ -18,54 +18,37 @@ import static com.mongodb.migratecluster.utils.ListUtils.*;
  */
 public class ServerMigrator {
     final static Logger logger = LoggerFactory.getLogger(ServerMigrator.class);
-    private List<Document> databases;
     private final MongoClient client;
 
     public ServerMigrator(MongoClient client) {
         this.client = client;
     }
 
-    public void migrate(ApplicationOptions appOptions) throws AppException {
-        this.databases = IteratorHelper.getDatabases(client);
-
-        if (this.databases == null) {
-            String message = "looks like migrate process was invoked before loading the databases";
-            logger.warn(message);
-            throw new AppException(message);
-        }
-        else if (this.databases.size() == 0) {
+    public void migrate(ApplicationOptions appOptions, Map<String, List<Resource>> dbResources) throws AppException {
+        if (dbResources.size() == 0) {
             String message = "looks like no databases found in the source";
             logger.warn(message);
             throw new AppException(message);
         }
 
-        List<Document> filteredDatabases = getDatabaseForProcessing(appOptions);
-        List<DatabaseMigrator> databaseMigrators = select(filteredDatabases,
-                d -> new DatabaseMigrator(client, d));
-        databaseMigrators.forEach(d -> {
-            try {
-                d.migrate(appOptions);
-            } catch (AppException e) {
-                e.printStackTrace();
+        List<DatabaseMigrator> migrators = new ArrayList<>();
+
+        dbResources.keySet().forEach(db -> {
+            List<Resource> resources = dbResources.get(db);
+            if (resources != null && resources.size() > 0) {
+                migrators.add(new DatabaseMigrator(client, db, resources));
             }
         });
-    }
 
-    private List<Document> getDatabaseForProcessing(ApplicationOptions appOptions) {
-        // loop through databases and check if there filters
-        List<ResourceFilter> filters = appOptions.getBlackListFilter();
-        List<String> skipDatabases =
-                select(
-                    where(filters, i -> i.isEntireDatabase()),
-                    d -> d.getDatabase());
-
-
-        return null;
-        // load all databases except for full databases that needs skip
-//        return where(this.databases, d -> {
-//            String db = d.getString("name");
-//            return !any(skipDatabases, s -> s.getDatabase().equals(db));
-//        });
+        for (DatabaseMigrator migrator : migrators) {
+            try {
+                migrator.migrate(appOptions);
+            } catch (AppException e) {
+                String message = String.format("error while migrating database: %s", migrator.getDatabase());
+                logger.error(message);
+                throw new AppException(message, e);
+            }
+        }
     }
 
 }

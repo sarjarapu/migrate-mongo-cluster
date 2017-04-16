@@ -10,7 +10,7 @@ public class AppException extends Exception {
         super(message);
     }
 
-    public AppException(String message, IOException e) {
+    public AppException(String message, Exception e) {
         super(message, e);
     }
 }

@@ -18,6 +18,11 @@ import java.util.*;
 public class IteratorHelper {
     final static Logger logger = LoggerFactory.getLogger(IteratorHelper.class);
 
+    public static MongoCollection<Document> getMongoCollection(MongoClient client, Resource resource) {
+        MongoDatabase database = client.getDatabase(resource.getDatabase());
+        return database.getCollection(resource.getCollection());
+    }
+
     public static Map<String, List<Resource>> getSourceResources(MongoClient client) {
         Map<String, List<Resource>> dictionary = new HashMap<>();
 
@@ -58,7 +63,7 @@ public class IteratorHelper {
         while(iterator.hasNext()) {
             Document item = iterator.next();
             if (!item.isEmpty()) {
-                logger.debug("found collection: {}.{}", database.getName(), item.toJson());
+                logger.debug("found collection: {}.{}", database.getName(), item.getString("name"));
                 list.add(item);
             }
         }

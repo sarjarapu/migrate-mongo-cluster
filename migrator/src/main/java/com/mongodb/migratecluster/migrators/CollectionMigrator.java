@@ -1,11 +1,13 @@
 package com.mongodb.migratecluster.migrators;
 
+import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
+import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.utils.ListUtils;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -19,26 +21,28 @@ import java.util.List;
  */
 public class CollectionMigrator {
     final static Logger logger = LoggerFactory.getLogger(CollectionMigrator.class);
-    private final MongoCollection<Document> collection;
+    private final MongoClient client;
+    private final Resource resource;
 
-    public CollectionMigrator(MongoCollection<Document> collection) {
-        this.collection = collection;
+    public CollectionMigrator(MongoClient client, Resource resource) {
+        this.client = client;
+        this.resource = resource;
+    }
+
+    public String getNamespace() {
+        return this.resource.getNamespace();
     }
 
     public void migrate(ApplicationOptions appOptions) throws AppException {
-        List<Document> list = IteratorHelper.getDocuments(this.collection);
+        MongoCollection<Document> collection = IteratorHelper.getMongoCollection(this.client, this.resource);
 
-        if (list == null) {
-            String message = "looks like migrate process was invoked before loading the collections";
-            logger.warn(message);
-            throw new AppException(message);
-        }
-        else if (list.size() == 0) {
+        if (collection == null) {
             String message = "looks like no collections found in the source";
             logger.warn(message);
             throw new AppException(message);
         }
 
+        List<Document> list = IteratorHelper.getDocuments(collection);
         list.forEach(item -> logger.debug(item.toJson()));
     }
 }

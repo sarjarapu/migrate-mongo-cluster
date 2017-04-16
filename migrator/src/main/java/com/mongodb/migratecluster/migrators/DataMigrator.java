@@ -52,7 +52,7 @@ public class DataMigrator {
         readSourceClusterConfigDatabase();
     }
 
-    private void readSourceClusterConfigDatabase() {
+    private void readSourceClusterConfigDatabase() throws AppException {
         MongoClient client = getMongoClient();
         Map<String, List<Resource>> sourceResources = IteratorHelper.getSourceResources(client);
         Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
@@ -61,14 +61,18 @@ public class DataMigrator {
             logger.info("{} -> [{}]", k, ListUtils.join(filteredSourceResources.get(k), ','));
         });
 
-        //ServerMigrator serverMigrator = new ServerMigrator(client);
-//        try {
-            //serverMigrator.migrate(this.appOptions);
-//        } catch (AppException e) {
-//            e.printStackTrace();
-//        }
-        // NOTE: I would rather have pub sub of what's being read and who processes it
-        // serverMigrator.migrate(targetServer);
+        ServerMigrator serverMigrator = new ServerMigrator(client);
+        try {
+
+            // NOTE: I would rather have pub sub of what's being read and who processes it
+            // serverMigrator.migrate(targetServer);
+            serverMigrator.migrate(this.appOptions, filteredSourceResources);
+
+        } catch (AppException e) {
+            String message = "error in while processing server migration.";
+            logger.error(message, e);
+            throw new AppException(message, e);
+        }
 
         client.close();
     }
@@ -83,20 +87,32 @@ public class DataMigrator {
         List<ResourceFilter> blacklist = appOptions.getBlackListFilter();
         Map<String, List<Resource>> filteredResources = new HashMap<>(resources);
 
-        // for all resources in blacklist remove 'em from filteredResources
+        // for all resources in blacklist remove them from filteredResources
         blacklist.forEach(r -> {
             String db = r.getDatabase();
             String coll = r.getCollection();
             if (filteredResources.containsKey(db)) {
+                // check if entire database needs to be skipped
                 if (r.isEntireDatabase()) {
                     filteredResources.remove(db);
                 }
                 else {
+                    // otherwise just remove the resources by collection name
                     List<Resource> list = filteredResources.get(db);
                     list.removeIf(i -> i.getCollection().equals(coll));
                 }
             }
         });
+
+        // remove database if it has any empty resource list in it
+        Object[] dbNames = filteredResources.keySet().toArray();
+        for (Object db : dbNames) {
+            String name = db.toString();
+            if (filteredResources.get(name).size() == 0) {
+                filteredResources.remove(name);
+            }
+        }
+
         return filteredResources;
     }
 }
