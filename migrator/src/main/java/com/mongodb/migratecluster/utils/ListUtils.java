@@ -36,4 +36,13 @@ public class ListUtils {
         }
         return false;
     }
+
+    public static <T> String join(List<T> list, char separator) {
+        StringBuilder sb = new StringBuilder();
+        for (T item : list) {
+            sb.append(separator);
+            sb.append(item.toString());
+        }
+        return sb.substring(1);
+    }
 }

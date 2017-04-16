@@ -4,10 +4,13 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
+import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.utils.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by shyamarjarapu on 4/13/17.
@@ -51,13 +54,18 @@ public class DataMigrator {
         MongoClient client = new MongoClient(uri);
 
 
-        ServerMigrator serverMigrator = new ServerMigrator(client);
+        //ServerMigrator serverMigrator = new ServerMigrator(client);
 
-        try {
-            serverMigrator.migrate(this.appOptions);
-        } catch (AppException e) {
-            e.printStackTrace();
-        }
+//        try {
+            //serverMigrator.migrate(this.appOptions);
+            Map<String, List<Resource>> sourceResources = IteratorHelper.getSourceResources(client);
+
+            sourceResources.keySet().forEach(k -> {
+                logger.info("{} -> [{}]", k, ListUtils.join(sourceResources.get(k), ','));
+            });
+//        } catch (AppException e) {
+//            e.printStackTrace();
+//        }
 
         // NOTE: I would rather have pub sub of what's being read and who processes it
         // serverMigrator.migrate(targetServer);
