@@ -6,7 +6,11 @@ import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
-import com.mongodb.migratecluster.utils.ListUtils;
+import com.mongodb.migratecluster.observables.DocumentObservable;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,8 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.mongodb.migratecluster.utils.ListUtils.select;
-import static com.mongodb.migratecluster.utils.ListUtils.where;
 
 /**
  * Created by shyamarjarapu on 4/13/17.
@@ -49,31 +51,33 @@ public class DataMigrator {
         }
 
         // loop through source and copy to target
-        readSourceClusterConfigDatabase();
+        readSourceClusterDatabases();
     }
 
-    private void readSourceClusterConfigDatabase() throws AppException {
+    private void readSourceClusterDatabases() throws AppException {
         MongoClient client = getMongoClient();
         Map<String, List<Resource>> sourceResources = IteratorHelper.getSourceResources(client);
         Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
 
-        filteredSourceResources.keySet().forEach(k -> {
-            logger.info("{} -> [{}]", k, ListUtils.join(filteredSourceResources.get(k), ','));
-        });
-
         ServerMigrator serverMigrator = new ServerMigrator(client);
         try {
+            serverMigrator.initialize(filteredSourceResources);
+            // TODO: get the documentObservable here and subscribe to it
 
-            // NOTE: I would rather have pub sub of what's being read and who processes it
-            // serverMigrator.migrate(targetServer);
-            serverMigrator.migrate(this.appOptions, filteredSourceResources);
+            serverMigrator
+                    .getObservable()
+                    .flatMap(d -> d)
+                    .subscribe(p -> {
+                        System.out.println(p);
+                    });
 
+            // TODO: Do I still need this ?
+            //serverMigrator.migrate(this.appOptions);
         } catch (AppException e) {
             String message = "error in while processing server migration.";
             logger.error(message, e);
             throw new AppException(message, e);
         }
-
         client.close();
     }
 
