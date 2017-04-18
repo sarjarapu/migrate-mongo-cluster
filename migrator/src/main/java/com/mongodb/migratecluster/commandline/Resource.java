@@ -2,6 +2,7 @@ package com.mongodb.migratecluster.commandline;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.bson.Document;
 
 /**
  * File: Resource
@@ -10,14 +11,24 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Description:
  */
 public class Resource {
+    private Document collectionOptions;
     private String database;
     private String collection;
 
-    public Resource() { }
+    public Resource() {
+        this.collectionOptions = new Document();
+    }
 
-    public Resource(String database, String collection) {
+    protected Resource(String database, String collection) {
+        this();
         this.database = database;
         this.collection = collection;
+    }
+
+
+    public Resource(String database, Document document) {
+        this(database, document.getString("name"));
+        this.collectionOptions = (Document)document.get("options");
     }
 
     @JsonProperty("database")
@@ -36,6 +47,11 @@ public class Resource {
 
     public void setCollection(String collection) {
         this.collection = collection;
+    }
+
+    @JsonIgnore
+    public Document getCollectionOptions() {
+        return collectionOptions;
     }
 
     @JsonIgnore

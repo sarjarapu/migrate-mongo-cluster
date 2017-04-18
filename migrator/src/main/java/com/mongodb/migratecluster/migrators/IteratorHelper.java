@@ -35,7 +35,7 @@ public class IteratorHelper {
             String databaseName = d.getString("name");
             MongoDatabase database = client.getDatabase(databaseName);
             List<Resource> resources = ListUtils.select(getCollections(database),
-                    c -> new Resource(databaseName, c.getString("name")));
+                    c -> new Resource(databaseName, c));
             dictionary.put(databaseName, resources);
         });
         return dictionary;
@@ -67,7 +67,7 @@ public class IteratorHelper {
         while(iterator.hasNext()) {
             Document item = iterator.next();
             if (!item.isEmpty()) {
-                logger.debug("found collection: {}.{}", database.getName(), item.getString("name"));
+                logger.debug("found collection: {}.{}", database.getName(), item.toJson());
                 list.add(item);
             }
         }

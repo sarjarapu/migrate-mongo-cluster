@@ -6,6 +6,7 @@ import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
+import com.mongodb.migratecluster.observers.DocumentWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,34 +54,47 @@ public class DataMigrator {
     }
 
     private void readSourceClusterDatabases() throws AppException {
-        MongoClient client = getMongoClient();
-        Map<String, List<Resource>> sourceResources = IteratorHelper.getSourceResources(client);
+        MongoClient sourceClient = getSourceMongoClient();
+        MongoClient targetClient = getTargetMongoClient();
+        Map<String, List<Resource>> sourceResources = IteratorHelper.getSourceResources(sourceClient);
         Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
 
 
         try {
-            ServerMigrator serverMigrator = new ServerMigrator(client, filteredSourceResources);
+            ServerMigrator serverMigrator = new ServerMigrator(sourceClient, filteredSourceResources);
+            DocumentWriter documentWriter = new DocumentWriter(targetClient);
             serverMigrator
                     .getObservable()
                     .flatMap(d -> d)
                     .subscribe(p -> {
+                        documentWriter.onNext(p);
+                        /*
                         System.out.println(
                             String.format("%s -> %s",
                                 p.getResource().getNamespace(),
                                 p.getDocument().toJson()));
+                                */
                     });
         } catch (AppException e) {
             String message = "error in while processing server migration.";
             logger.error(message, e);
             throw new AppException(message, e);
         }
-        client.close();
+        sourceClient.close();
     }
 
-    private MongoClient getMongoClient() {
-        String connectionString = String.format("mongodb://%s", this.appOptions.getSourceCluster());
+    private MongoClient getMongoClient(String cluster) {
+        String connectionString = String.format("mongodb://%s", cluster);
         MongoClientURI uri = new MongoClientURI(connectionString);
         return new MongoClient(uri);
+    }
+
+    private MongoClient getSourceMongoClient() {
+        return getMongoClient(this.appOptions.getSourceCluster());
+    }
+
+    private MongoClient getTargetMongoClient() {
+        return getMongoClient(this.appOptions.getTargetCluster());
     }
 
     private Map<String, List<Resource>> getFilteredResources(Map<String, List<Resource>> resources) {
