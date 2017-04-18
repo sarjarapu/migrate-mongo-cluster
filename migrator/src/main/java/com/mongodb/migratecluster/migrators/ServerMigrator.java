@@ -23,11 +23,12 @@ public class ServerMigrator {
     private final MongoClient client;
     private List<DatabaseMigrator> migrators;
 
-    public ServerMigrator(MongoClient client) {
+    public ServerMigrator(MongoClient client, Map<String, List<Resource>> filteredSourceResources) throws AppException {
         this.client = client;
+        this.initialize(filteredSourceResources);
     }
 
-    public void initialize(Map<String, List<Resource>> dbResources) throws AppException {
+    private void initialize(Map<String, List<Resource>> dbResources) throws AppException {
         if (dbResources.size() == 0) {
             String message = "looks like no databases found in the source";
             logger.warn(message);
@@ -39,7 +40,6 @@ public class ServerMigrator {
             List<Resource> resources = dbResources.get(db);
             if (resources != null && resources.size() > 0) {
                 DatabaseMigrator migrator = new DatabaseMigrator(client, db, resources);
-                migrator.initialize();
                 migrators.add(migrator);
             }
         }

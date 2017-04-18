@@ -24,10 +24,11 @@ public class DatabaseMigrator {
     private final List<Resource> resources;
     private List<CollectionMigrator> migrators;
 
-    public DatabaseMigrator(MongoClient client, String database, List<Resource> resources) {
+    public DatabaseMigrator(MongoClient client, String database, List<Resource> resources) throws AppException {
         this.client = client;
         this.database = database;
         this.resources = resources;
+        this.initialize();
     }
 
     public String getDatabase() {
@@ -40,7 +41,7 @@ public class DatabaseMigrator {
                 .map(d -> d.getObservable());
     }
 
-    public void initialize() throws AppException {
+    private void initialize() throws AppException {
         if (this.resources.size() == 0) {
             String message = "looks like no collections found in the source";
             logger.warn(message);
@@ -50,7 +51,6 @@ public class DatabaseMigrator {
         this.migrators = new ArrayList<>();
         for (Resource resource : this.resources) {
             CollectionMigrator migrator = new CollectionMigrator(client, resource);
-            migrator.initialize();
             this.migrators.add(migrator);
         }
     }

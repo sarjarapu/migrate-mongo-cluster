@@ -21,9 +21,10 @@ public class CollectionMigrator {
     private final Resource resource;
     private DocumentObservable documents;
 
-    public CollectionMigrator(MongoClient client, Resource resource) {
+    public CollectionMigrator(MongoClient client, Resource resource) throws AppException {
         this.client = client;
         this.resource = resource;
+        initialize();
     }
 
     public String getNamespace() {
@@ -34,7 +35,7 @@ public class CollectionMigrator {
         return documents;
     }
 
-    public void initialize() throws AppException {
+    private void initialize() throws AppException {
         MongoCollection<Document> collection = IteratorHelper.getMongoCollection(this.client, this.resource);
 
         if (collection == null) {

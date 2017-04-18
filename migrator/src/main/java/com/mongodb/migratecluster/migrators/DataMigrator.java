@@ -57,9 +57,9 @@ public class DataMigrator {
         Map<String, List<Resource>> sourceResources = IteratorHelper.getSourceResources(client);
         Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
 
-        ServerMigrator serverMigrator = new ServerMigrator(client);
+
         try {
-            serverMigrator.initialize(filteredSourceResources);
+            ServerMigrator serverMigrator = new ServerMigrator(client, filteredSourceResources);
             serverMigrator
                     .getObservable()
                     .flatMap(d -> d)
