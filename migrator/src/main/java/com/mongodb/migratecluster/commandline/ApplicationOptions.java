@@ -7,7 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by shyamarjarapu on 4/13/17.
+ * File: ApplicationOptions
+ * Author: shyam.arjarapu
+ * Date: 4/13/17 11:47 PM
+ * Description:
  */
 public class ApplicationOptions {
     private String sourceCluster;

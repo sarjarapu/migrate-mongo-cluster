@@ -6,11 +6,6 @@ import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
-import com.mongodb.migratecluster.observables.DocumentObservable;
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Consumer;
-import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +15,10 @@ import java.util.Map;
 
 
 /**
- * Created by shyamarjarapu on 4/13/17.
+ * File: DataMigrator
+ * Author: shyam.arjarapu
+ * Date: 4/13/17 11:45 PM
+ * Description:
  */
 public class DataMigrator {
     final static Logger logger = LoggerFactory.getLogger(DataMigrator.class);

@@ -3,7 +3,10 @@ package com.mongodb.migratecluster.commandline;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Created by shyamarjarapu on 4/14/17.
+ * File: ResourceFilter
+ * Author: shyam.arjarapu
+ * Date: 4/14/17 11:48 PM
+ * Description:
  */
 public class ResourceFilter extends Resource {
     private String filterExpression;

@@ -12,7 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by shyamarjarapu on 4/14/17.
+ * File: DatabaseMigrator
+ * Author: shyam.arjarapu
+ * Date: 4/14/17 11:46 PM
+ * Description:
  */
 public class DatabaseMigrator {
     final static Logger logger = LoggerFactory.getLogger(DatabaseMigrator.class);
@@ -51,16 +54,4 @@ public class DatabaseMigrator {
             this.migrators.add(migrator);
         }
     }
-
-    /*public void migrate(ApplicationOptions appOptions) throws AppException {
-        for (CollectionMigrator migrator : this.migrators) {
-            try {
-                migrator.migrate(appOptions);
-            } catch (AppException e) {
-                String message = String.format("error while migrating collection: %s", migrator.getNamespace());
-                logger.error(message);
-                throw new AppException(message, e);
-            }
-        }
-    }*/
 }

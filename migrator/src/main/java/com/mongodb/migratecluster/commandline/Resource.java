@@ -4,7 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Created by shyamarjarapu on 4/15/17.
+ * File: Resource
+ * Author: shyam.arjarapu
+ * Date: 4/15/17 11:48 PM
+ * Description:
  */
 public class Resource {
     private String database;

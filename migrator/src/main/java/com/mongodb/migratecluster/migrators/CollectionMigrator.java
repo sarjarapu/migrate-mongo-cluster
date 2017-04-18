@@ -3,16 +3,17 @@ package com.mongodb.migratecluster.migrators;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.AppException;
-import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.observables.DocumentObservable;
-import io.reactivex.Observable;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Created by shyamarjarapu on 4/14/17.
+ * File: CollectionMigrator
+ * Author: shyam.arjarapu
+ * Date: 4/14/17 11:46 PM
+ * Description:
  */
 public class CollectionMigrator {
     final static Logger logger = LoggerFactory.getLogger(CollectionMigrator.class);
@@ -44,16 +45,4 @@ public class CollectionMigrator {
 
         this.documents = new DocumentObservable(this.resource, collection);
     }
-
-    /*public void migrate(ApplicationOptions appOptions) throws AppException {
-        MongoCollection<Document> collection = IteratorHelper.getMongoCollection(this.client, this.resource);
-
-        if (collection == null) {
-            String message = "looks like no collections found in the source";
-            logger.warn(message);
-            throw new AppException(message);
-        }
-
-        this.documents.setCollection(collection);
-    }*/
 }

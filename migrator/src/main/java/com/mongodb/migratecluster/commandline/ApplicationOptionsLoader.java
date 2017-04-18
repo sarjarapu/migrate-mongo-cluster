@@ -7,13 +7,16 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Created by shyamarjarapu on 4/13/17.
+ * File: ApplicationOptionsLoader
+ * Author: shyam.arjarapu
+ * Date: 4/13/17 11:47 PM
+ * Description:
  */
 public class ApplicationOptionsLoader {
 
     public static ApplicationOptions load(String configFilePath) throws AppException {
         ObjectMapper mapper = new ObjectMapper(); // create once, reuse
-        ApplicationOptions appOptions = null;
+        ApplicationOptions appOptions;
         try {
 
             File file = new File(configFilePath);

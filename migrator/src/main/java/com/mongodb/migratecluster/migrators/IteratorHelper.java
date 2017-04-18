@@ -2,25 +2,25 @@ package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.*;
-import com.mongodb.client.model.Sorts;
 import com.mongodb.migratecluster.commandline.Resource;
-import com.mongodb.migratecluster.observables.DocumentObservable;
 import com.mongodb.migratecluster.utils.ListUtils;
-import io.reactivex.*;
-import io.reactivex.Observable;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.Callable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Created by shyamarjarapu on 4/14/17.
+ * File: IteratorHelper
+ * Author: shyam.arjarapu
+ * Date: 4/14/17 11:43 PM
+ * Description:
  */
 public class IteratorHelper {
-    final static Logger logger = LoggerFactory.getLogger(IteratorHelper.class);
+    private final static Logger logger = LoggerFactory.getLogger(IteratorHelper.class);
 
     public static MongoCollection<Document> getMongoCollection(MongoClient client, Resource resource) {
         MongoDatabase database = client.getDatabase(resource.getDatabase());
@@ -73,22 +73,4 @@ public class IteratorHelper {
         }
         return list;
     }
-
-
-    public static List<Document> getDocuments(MongoCollection<Document> collection) {
-        List<Document> list = new ArrayList<>();
-
-        Bson sortCriteria = Sorts.ascending("_id");
-        MongoCursor<Document> iterator = collection.find().sort(sortCriteria).iterator();
-
-        while(iterator.hasNext()) {
-            Document item = iterator.next();
-            if (!item.isEmpty()) {
-                logger.debug("found item: {}.{}", collection.getNamespace(), item.toJson());
-                list.add(item);
-            }
-        }
-        return list;
-    }
-
 }

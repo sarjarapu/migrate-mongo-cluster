@@ -1,9 +1,10 @@
 package com.mongodb.migratecluster;
 
-import java.io.IOException;
-
 /**
- * Created by shyamarjarapu on 4/13/17.
+ * File: AppException
+ * Author: shyam.arjarapu
+ * Date: 4/13/17 11:49 PM
+ * Description:
  */
 public class AppException extends Exception {
     public AppException(String message) {

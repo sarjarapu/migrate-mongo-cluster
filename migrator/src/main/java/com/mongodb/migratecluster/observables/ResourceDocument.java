@@ -4,13 +4,16 @@ import com.mongodb.migratecluster.commandline.Resource;
 import org.bson.Document;
 
 /**
- * Created by shyamarjarapu on 4/17/17.
+ * File: ResourceDocument
+ * Author: shyam.arjarapu
+ * Date: 4/17/17 11:36 PM
+ * Description:
  */
 public class ResourceDocument {
     private final Resource resource;
     private final Document document;
 
-    public ResourceDocument(Resource resource, Document document) {
+    ResourceDocument(Resource resource, Document document) {
         this.resource = resource;
         this.document = document;
     }
