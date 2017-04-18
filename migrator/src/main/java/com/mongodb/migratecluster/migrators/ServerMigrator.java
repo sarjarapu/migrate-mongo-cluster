@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -47,16 +48,10 @@ public class ServerMigrator {
         }
     }
 
-    public Observable<CollectionObservable> getObservable() {
-
-        List<CollectionObservable> observableList = this.migrators.stream()
-                .map(d -> d.getObservable())
-                .map(d -> new CollectionObservable(d))
-                .collect(Collectors.toList());
-        CollectionObservable[] observables = new CollectionObservable[observableList.size()];
-        observableList.toArray(observables);
-
-        return Observable.fromArray(observables);
+    public Observable<DocumentObservable> getObservable() {
+        return Observable
+                .fromIterable(this.migrators)
+                .flatMap(m -> m.getObservable());
     }
 
     public void migrate(ApplicationOptions appOptions) throws AppException {

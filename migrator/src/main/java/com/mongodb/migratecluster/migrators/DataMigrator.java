@@ -63,15 +63,12 @@ public class DataMigrator {
         try {
             serverMigrator.initialize(filteredSourceResources);
             // TODO: get the documentObservable here and subscribe to it
-            //serverMigrator.getDatabases().subscribe(db -> db.getCollections().subscribe(c -> c.subscribe(d -> System.output.println(d))))
 
-            Disposable subscribe = serverMigrator.getObservable()
-                    .subscribe(d -> {
-                        d.subscribe(doc -> {
-                            doc.subscribe(p -> {
-                                System.out.println(p.toJson());
-                            });
-                        } );
+            serverMigrator
+                    .getObservable()
+                    .flatMap(d -> d)
+                    .subscribe(p -> {
+                        System.out.println(p);
                     });
 
             // TODO: Do I still need this ?

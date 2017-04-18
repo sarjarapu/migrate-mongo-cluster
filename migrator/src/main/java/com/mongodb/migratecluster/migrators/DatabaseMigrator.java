@@ -35,13 +35,9 @@ public class DatabaseMigrator {
     }
 
     public Observable<DocumentObservable> getObservable() {
-        List<DocumentObservable> observableList = this.migrators.stream()
-                .map(d -> d.getObservable())
-                .collect(Collectors.toList());
-        DocumentObservable[] observables = new DocumentObservable[observableList.size()];
-        observableList.toArray(observables);
-
-        return Observable.fromArray(observables);
+        return Observable
+                .fromIterable(this.migrators)
+                .map(d -> d.getObservable());
     }
 
     public void initialize() throws AppException {
