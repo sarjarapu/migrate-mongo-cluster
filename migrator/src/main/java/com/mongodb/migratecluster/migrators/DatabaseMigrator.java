@@ -4,14 +4,15 @@ import com.mongodb.MongoClient;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
-import com.mongodb.migratecluster.utils.ListUtils;
-import org.bson.Document;
+import com.mongodb.migratecluster.observables.DocumentObservable;
+import io.reactivex.Observable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import static com.mongodb.migratecluster.utils.ListUtils.select;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by shyamarjarapu on 4/14/17.
@@ -21,6 +22,7 @@ public class DatabaseMigrator {
     private final MongoClient client;
     private final String database;
     private final List<Resource> resources;
+    private List<CollectionMigrator> migrators;
 
     public DatabaseMigrator(MongoClient client, String database, List<Resource> resources) {
         this.client = client;
@@ -32,16 +34,33 @@ public class DatabaseMigrator {
         return database;
     }
 
+    public Observable<DocumentObservable> getObservable() {
+        List<DocumentObservable> observableList = this.migrators.stream()
+                .map(d -> d.getObservable())
+                .collect(Collectors.toList());
+        DocumentObservable[] observables = new DocumentObservable[observableList.size()];
+        observableList.toArray(observables);
 
-    public void migrate(ApplicationOptions appOptions) throws AppException {
+        return Observable.fromArray(observables);
+    }
+
+    public void initialize() throws AppException {
         if (this.resources.size() == 0) {
             String message = "looks like no collections found in the source";
             logger.warn(message);
             throw new AppException(message);
         }
 
-        List<CollectionMigrator> migrators = select(this.resources, r -> new CollectionMigrator(client, r));
-        for (CollectionMigrator migrator : migrators) {
+        this.migrators = new ArrayList<>();
+        for (Resource resource : this.resources) {
+            CollectionMigrator migrator = new CollectionMigrator(client, resource);
+            migrator.initialize();
+            this.migrators.add(migrator);
+        }
+    }
+
+    public void migrate(ApplicationOptions appOptions) throws AppException {
+        for (CollectionMigrator migrator : this.migrators) {
             try {
                 migrator.migrate(appOptions);
             } catch (AppException e) {

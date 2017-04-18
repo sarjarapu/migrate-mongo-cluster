@@ -4,13 +4,17 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.*;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.observables.DocumentObservable;
 import com.mongodb.migratecluster.utils.ListUtils;
+import io.reactivex.*;
+import io.reactivex.Observable;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.Callable;
 
 /**
  * Created by shyamarjarapu on 4/14/17.
@@ -86,4 +90,5 @@ public class IteratorHelper {
         }
         return list;
     }
+
 }
