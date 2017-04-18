@@ -10,9 +10,11 @@ import com.mongodb.migratecluster.observers.DocumentWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -61,6 +63,8 @@ public class DataMigrator {
 
 
         try {
+            Date startDateTime = new Date();
+            logger.info(" started processing at {}", startDateTime);
             ServerMigrator serverMigrator = new ServerMigrator(sourceClient, filteredSourceResources);
             DocumentWriter documentWriter = new DocumentWriter(targetClient);
             serverMigrator
@@ -75,6 +79,9 @@ public class DataMigrator {
                                 p.getDocument().toJson()));
                                 */
                     });
+            Date endDateTime = new Date();
+            logger.info(" completed processing at {}", endDateTime);
+            logger.info(" total time to process is {}", TimeUnit.SECONDS.convert(endDateTime.getTime() - startDateTime.getTime(), TimeUnit.MILLISECONDS));
         } catch (AppException e) {
             String message = "error in while processing server migration.";
             logger.error(message, e);
