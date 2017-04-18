@@ -28,7 +28,6 @@ public class App {
     public static void main(String[] args) {
         App app = new App();
         app.run(args);
-        //app.test();
     }
 
     private void run(String[] args){
@@ -41,21 +40,6 @@ public class App {
             System.err.println(e.getMessage());
             System.exit(1);
         }
-    }
-
-    private void test() {
-        Observable<Object> items = getIntegers();
-        items.subscribe(l -> System.out.println(l.toString()));
-    }
-
-    private Observable<Object> getIntegers() {
-        Observable<Object> observable = Observable.create(s -> {
-            s.onNext("Testing 1");
-            s.onNext("Testing 2");
-            s.onNext("Testing 3");
-            s.onComplete();
-        });
-        return observable;
     }
 
     private ApplicationOptions getApplicationOptions(String[] args) {

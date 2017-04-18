@@ -2,20 +2,13 @@ package com.mongodb.migratecluster.observers;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.migratecluster.commandline.Resource;
-import com.mongodb.migratecluster.migrators.IteratorHelper;
 import com.mongodb.migratecluster.observables.ResourceDocument;
-import com.mongodb.util.JSON;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * File: DocumentWriter
@@ -23,17 +16,11 @@ import java.util.Map;
  * Date: 4/17/17 11:53 PM
  * Description:
  */
-public class DocumentWriter implements Observer<ResourceDocument> {
+public class DocumentWriter extends BaseDocumentWriter implements Observer<ResourceDocument> {
     private final static Logger logger = LoggerFactory.getLogger(DocumentWriter.class);
 
-    private final MongoClient client;
-    private final Map<String, MongoDatabase> mongoDatabaseMap;
-    private final Map<String, MongoCollection<Document>> mongoCollectionMap;
-
     public DocumentWriter(MongoClient client) {
-        this.client = client;
-        this.mongoDatabaseMap = new HashMap<>();
-        this.mongoCollectionMap = new HashMap<>();
+        super(client);
     }
 
     @Override
@@ -60,7 +47,7 @@ public class DocumentWriter implements Observer<ResourceDocument> {
 
     }
 
-    private void createCollectionIfRequired(ResourceDocument resourceDocument) {
+/*    private void createCollectionIfRequired(ResourceDocument resourceDocument) {
         Resource resource = resourceDocument.getResource();
         String dbName = resource.getDatabase();
 
@@ -75,7 +62,7 @@ public class DocumentWriter implements Observer<ResourceDocument> {
                 database.createCollection(resource.getCollection(), collectionOptions);
             }
         }
-    }
+    }*/
 
     private void writeDocument(ResourceDocument resourceDocument) {
         Resource resource = resourceDocument.getResource();
@@ -87,49 +74,5 @@ public class DocumentWriter implements Observer<ResourceDocument> {
         collection.insertOne(resourceDocument.getDocument());
     }
 
-    private MongoDatabase getMongoDatabase(String dbName) {
-        // TODO: Concurrent Dictionary ?
-        if (mongoDatabaseMap.containsKey(dbName)) {
-            return mongoDatabaseMap.get(dbName);
-        }
 
-        MongoDatabase database = this.client.getDatabase(dbName);
-        mongoDatabaseMap.put(dbName, database);
-        return database;
-    }
-
-
-    private MongoCollection<Document> getMongoCollection(String namespace, String databaseName, String collectionName) {
-        // TODO: Concurrent Dictionary ?
-        if (mongoCollectionMap.containsKey(namespace)) {
-            return mongoCollectionMap.get(namespace);
-        }
-
-        MongoDatabase database = getMongoDatabase(databaseName);
-        MongoCollection<Document> collection = database.getCollection(collectionName);
-        mongoCollectionMap.put(namespace, collection);
-        return collection;
-    }
-
-    private CreateCollectionOptions getCreateCollectionOptions(Document document) {
-        CreateCollectionOptions collectionOptions = new CreateCollectionOptions();
-
-        if (document.containsKey("autoIndex")) {
-            collectionOptions.autoIndex(document.getBoolean("autoIndex"));
-        }
-        if (document.containsKey("capped")) {
-            collectionOptions.capped(document.getBoolean("capped"));
-        }
-        if (document.containsKey("maxDocuments")) {
-            collectionOptions.maxDocuments(document.getLong("maxDocuments"));
-        }
-        if (document.containsKey("sizeInBytes")) {
-            collectionOptions.sizeInBytes(document.getLong("sizeInBytes"));
-        }
-        if (document.containsKey("usePowerOf2Sizes")) {
-            collectionOptions.usePowerOf2Sizes(document.getBoolean("usePowerOf2Sizes"));
-        }
-
-        return collectionOptions;
-    }
 }
