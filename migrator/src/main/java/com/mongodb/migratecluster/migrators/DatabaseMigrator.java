@@ -2,7 +2,6 @@ package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
 import com.mongodb.migratecluster.AppException;
-import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.observables.DocumentObservable;
 import io.reactivex.Observable;
@@ -11,8 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Created by shyamarjarapu on 4/14/17.
@@ -55,7 +52,7 @@ public class DatabaseMigrator {
         }
     }
 
-    public void migrate(ApplicationOptions appOptions) throws AppException {
+    /*public void migrate(ApplicationOptions appOptions) throws AppException {
         for (CollectionMigrator migrator : this.migrators) {
             try {
                 migrator.migrate(appOptions);
@@ -65,5 +62,5 @@ public class DatabaseMigrator {
                 throw new AppException(message, e);
             }
         }
-    }
+    }*/
 }

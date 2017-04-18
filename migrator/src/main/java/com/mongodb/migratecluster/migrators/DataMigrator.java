@@ -62,17 +62,15 @@ public class DataMigrator {
         ServerMigrator serverMigrator = new ServerMigrator(client);
         try {
             serverMigrator.initialize(filteredSourceResources);
-            // TODO: get the documentObservable here and subscribe to it
-
             serverMigrator
                     .getObservable()
                     .flatMap(d -> d)
                     .subscribe(p -> {
-                        System.out.println(p);
+                        System.out.println(
+                            String.format("%s -> %s",
+                                p.getResource().getNamespace(),
+                                p.getDocument().toJson()));
                     });
-
-            // TODO: Do I still need this ?
-            //serverMigrator.migrate(this.appOptions);
         } catch (AppException e) {
             String message = "error in while processing server migration.";
             logger.error(message, e);

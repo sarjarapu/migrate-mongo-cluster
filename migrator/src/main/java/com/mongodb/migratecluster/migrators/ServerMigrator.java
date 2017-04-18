@@ -54,7 +54,7 @@ public class ServerMigrator {
                 .flatMap(m -> m.getObservable());
     }
 
-    public void migrate(ApplicationOptions appOptions) throws AppException {
+    /*public void migrate(ApplicationOptions appOptions) throws AppException {
         for (DatabaseMigrator migrator : this.migrators) {
             try {
                 migrator.migrate(appOptions);
@@ -64,6 +64,6 @@ public class ServerMigrator {
                 throw new AppException(message, e);
             }
         }
-    }
+    }*/
 
 }

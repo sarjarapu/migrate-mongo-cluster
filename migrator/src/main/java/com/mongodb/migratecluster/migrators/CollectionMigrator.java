@@ -42,11 +42,10 @@ public class CollectionMigrator {
             throw new AppException(message);
         }
 
-        this.documents = new DocumentObservable();
-        this.documents.setCollection(collection);
+        this.documents = new DocumentObservable(this.resource, collection);
     }
 
-    public void migrate(ApplicationOptions appOptions) throws AppException {
+    /*public void migrate(ApplicationOptions appOptions) throws AppException {
         MongoCollection<Document> collection = IteratorHelper.getMongoCollection(this.client, this.resource);
 
         if (collection == null) {
@@ -56,5 +55,5 @@ public class CollectionMigrator {
         }
 
         this.documents.setCollection(collection);
-    }
+    }*/
 }
