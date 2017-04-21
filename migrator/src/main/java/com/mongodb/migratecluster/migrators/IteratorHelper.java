@@ -50,7 +50,10 @@ public class IteratorHelper {
         while(iterator.hasNext()) {
             Document item = iterator.next();
             if (!item.isEmpty()) {
-                logger.debug("found database: {}", item.toJson());
+                String message = String.format(" found database name: %s, sizeOnDisk: %s",
+                        item.getString("name"), item.get("sizeOnDisk"));
+                logger.info(message);
+                logger.debug(item.toJson());
                 list.add(item);
             }
         }
@@ -67,7 +70,8 @@ public class IteratorHelper {
         while(iterator.hasNext()) {
             Document item = iterator.next();
             if (!item.isEmpty()) {
-                logger.debug("found collection: {}.{}", database.getName(), item.toJson());
+                logger.info(" ... found collection: {}.{}", database.getName(), item.getString("name"));
+                logger.debug(item.toJson());
                 list.add(item);
             }
         }

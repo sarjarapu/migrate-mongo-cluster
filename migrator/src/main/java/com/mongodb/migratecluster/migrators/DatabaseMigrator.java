@@ -54,4 +54,8 @@ public class DatabaseMigrator {
             this.migrators.add(migrator);
         }
     }
+
+    public List<CollectionMigrator> getCollectionMigrators() {
+        return migrators;
+    }
 }

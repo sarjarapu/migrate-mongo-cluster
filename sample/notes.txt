@@ -1,4 +1,7 @@
 
+http://tomstechnicalblog.blogspot.ca/2015/11/rxjava-achieving-parallelization.html
+http://jaihirsch.github.io/straw-in-a-haystack/mongodb/2014/08/18/mongo-oplog-tailing/
+https://www.mongodb.com/blog/post/tailing-mongodb-oplog-sharded-clusters
 
 // db.adminCommand({flushRouterConfig: true})
 // sh.stopBalancer
@@ -25,3 +28,55 @@ wait for all workers to be completed
  
 rinse and repeat 
 
+
+
+
+
+code:
+
+    private void testFlowable() {
+        // you got _id covered index scanner running here.
+        // each id is buffered into bucket of size 100
+        // each bucket is run in different thread
+        // each thread will read document $in (ids in bucket)
+
+        Observable<Integer> vals = Observable.range(1,1000);
+        // flatMap: transform the items emitted by an Observable into Observables,
+        // then flatten the emissions from those into a single Observable
+        vals.buffer(100)
+            .flatMap(new Function<List<Integer>, ObservableSource<List<Integer>>>() {
+                @Override
+                public ObservableSource<List<Integer>> apply(List<Integer> integers) throws Exception {
+                    return Observable
+                            .just(integers)
+                            .subscribeOn(Schedulers.io())
+                            .map(l -> {
+                                String message = String.format("Working\t%s\t%s\t%s",
+                                        Thread.currentThread().getId(), l.toString(), new Date().getTime());
+                                System.out.println(message);
+                                Thread.sleep(randInt(0,100));
+                                return l;
+                            });
+                }
+            })
+            .subscribe(new Consumer<List<Integer>>() {
+                @Override
+                public void accept(List<Integer> integers) throws Exception {
+                    String message = String.format("Received\t%s\t%s\t%s",
+                            Thread.currentThread().getId(), integers.toString(), new Date().getTime());
+                    System.out.println(message);
+                }
+            });
+        waitSleep(10000);
+    }
+    public static void waitSleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+    private static final Random rand = new Random();
+    public static int randInt(int min, int max) {
+        return rand.nextInt((max - min) + 1) + min;
+    }

@@ -6,12 +6,7 @@ import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
-import com.mongodb.migratecluster.observables.ResourceDocument;
 import com.mongodb.migratecluster.observers.BulkDocumentWriter;
-import com.mongodb.migratecluster.observers.DocumentWriter;
-import io.reactivex.Observable;
-import io.reactivex.Scheduler;
-import io.reactivex.schedulers.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,13 +68,28 @@ public class DataMigrator {
             ServerMigrator serverMigrator = new ServerMigrator(sourceClient, filteredSourceResources);
             BulkDocumentWriter bulkDocumentWriter = new BulkDocumentWriter(targetClient);
 
+            serverMigrator
+                .getDatabaseMigrators()
+                .forEach(dm -> {
+                    dm.getCollectionMigrators()
+                        .forEach(cm -> {
+                            cm.getObservable()
+                                .buffer(500)
+                                .subscribe(bulkDocumentWriter);
+                        });
+                });
+            /*
+            // previously working
             // single threaded bulkDocumentWriter
             serverMigrator
                     .getObservable()
                     .flatMap(d -> d)
                     .buffer(500)
+                    ////.
+                    //.subscribeOn(Schedulers.io())
+                    //.observeOn(Schedulers.single())
                     .subscribe(bulkDocumentWriter);
-
+            */
             Date endDateTime = new Date();
             logger.info(" completed processing at {}", endDateTime);
             logger.info(" total time to process is {}", TimeUnit.SECONDS.convert(endDateTime.getTime() - startDateTime.getTime(), TimeUnit.MILLISECONDS));

@@ -50,4 +50,8 @@ public class ServerMigrator {
                 .fromIterable(this.migrators)
                 .flatMap((DatabaseMigrator m) -> m.getObservable());
     }
+
+    public List<DatabaseMigrator> getDatabaseMigrators() {
+        return migrators;
+    }
 }

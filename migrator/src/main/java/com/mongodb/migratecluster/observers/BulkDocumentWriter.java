@@ -40,9 +40,9 @@ public class BulkDocumentWriter extends BaseDocumentWriter implements Observer<L
 
         resourceDocumentsMap.forEach((resource, documentList) -> {
             writeDocuments(documentList);
-            String message = String.format(" insertMany documents into { namespace: \"%s\", count: %d }",
-                    resource.getNamespace(),
-                    documentList.size());
+            String message = String.format(" ..... insertMany %d documents into namespace: \"%s\"",
+                    documentList.size(),
+                    resource.getNamespace());
             logger.info(message);
         });
 
