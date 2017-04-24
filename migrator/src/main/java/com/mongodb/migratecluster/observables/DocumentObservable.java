@@ -1,10 +1,15 @@
 package com.mongodb.migratecluster.observables;
 
+import com.mongodb.AggregationOptions;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.migratecluster.commandline.Resource;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
+import org.bson.BsonDocument;
+import org.bson.BsonInt32;
+import org.bson.BsonJavaScript;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
@@ -26,7 +31,13 @@ public class DocumentObservable extends Observable<ResourceDocument> {
     @Override
     protected void subscribeActual(Observer<? super ResourceDocument> observer) {
         Bson sortCriteria = Sorts.ascending("_id");
-        for (Document item : this.collection.find().sort(sortCriteria)) {
+        Bson projection = new BsonDocument("_id", new BsonInt32(1));
+        FindIterable<Document> documents =
+                this.collection
+                    .find()
+                    .projection(projection)
+                    .sort(sortCriteria);
+        for (Document item : documents) {
             if (!item.isEmpty()) {
                 observer.onNext(new ResourceDocument(this.resource, item));
             }

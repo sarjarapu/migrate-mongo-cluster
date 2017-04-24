@@ -6,14 +6,17 @@ import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
+import com.mongodb.migratecluster.observables.ResourceDocument;
 import com.mongodb.migratecluster.observers.BulkDocumentWriter;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 
@@ -73,11 +76,64 @@ public class DataMigrator {
                 .forEach(dm -> {
                     dm.getCollectionMigrators()
                         .forEach(cm -> {
+                            // _id only, read 500 at a time, split 5 parallel document fetchers
                             cm.getObservable()
                                 .buffer(500)
-                                .subscribe(bulkDocumentWriter);
+                                    .map(new Function<List<ResourceDocument>, List<ResourceDocument>>() {
+                                        @Override
+                                        public List<ResourceDocument> apply(List<ResourceDocument> documentList) throws Exception {
+                                            return Observable
+                                                    .just(documentList)
+                                                    .subscribeOn(Schedulers.io())
+                                                    .map(new Function<List<ResourceDocument>, List<ResourceDocument>>() {
+                                                        @Override
+                                                        public List<ResourceDocument> apply(List<ResourceDocument> documentList) throws Exception l -> {
+                                                            String message = String.format(" .... Reading docs on thread: %s",
+                                                                    Thread.currentThread().getId());
+                                                            logger.info(message);
+                                                            Thread.sleep(10);
+                                                            return documentList;
+                                                        }
+                                                    });
+                                        }
+                                    })
+                                    .subscribe(l -> {
+                                        String message = String.format(" .... Writing docs on thread: %s",
+                                                Thread.currentThread().getId());
+                                        logger.info(message);
+                                    });
+                                /*.flatMap(new Function<List<ResourceDocument>, ObservableSource<List<ResourceDocument>>>() {
+                                    @Override
+                                    public ObservableSource<List<ResourceDocument>> apply(List<ResourceDocument> documentList) throws Exception {
+                                        return Observable
+                                                .just(documentList)
+                                                .subscribeOn(Schedulers.io())
+                                                .map(l -> {
+                                                    String message = String.format(" .... Reading docs on thread: %s",
+                                                            Thread.currentThread().getId());
+                                                    logger.info(message);
+                                                    Thread.sleep(10);
+                                                    return l;
+                                                });
+                                    }
+                                })
+                                    .subscribe(new Consumer<List<ResourceDocument>>() {
+                                        @Override
+                                        public void accept(List<ResourceDocument> integers) throws Exception {
+                                            String message = String.format(" .... Writing docs on thread: %s",
+                                                    Thread.currentThread().getId());
+                                            logger.info(message);
+                                            System.out.println(message);
+                                        }
+                                    });*/
+                                //.subscribe(bulkDocumentWriter);
                         });
                 });
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             /*
             // previously working
             // single threaded bulkDocumentWriter
