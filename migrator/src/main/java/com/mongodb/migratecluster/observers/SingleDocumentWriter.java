@@ -11,15 +11,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * File: DocumentWriter
+ * File: SingleDocumentWriter
  * Author: shyam.arjarapu
  * Date: 4/17/17 11:53 PM
  * Description:
  */
-public class DocumentWriter extends BaseDocumentWriter implements Observer<ResourceDocument> {
-    private final static Logger logger = LoggerFactory.getLogger(DocumentWriter.class);
+public class SingleDocumentWriter extends BaseDocumentWriter implements Observer<ResourceDocument> {
+    private final static Logger logger = LoggerFactory.getLogger(SingleDocumentWriter.class);
 
-    public DocumentWriter(MongoClient client) {
+    public SingleDocumentWriter(MongoClient client) {
         super(client);
     }
 

@@ -19,17 +19,17 @@ public class Resource {
         this.collectionOptions = new Document();
     }
 
-    protected Resource(String database, String collection) {
+    public Resource(String database, String collection) {
         this();
         this.database = database;
         this.collection = collection;
     }
 
-
+/*
     public Resource(String database, Document document) {
         this(database, document.getString("name"));
         this.collectionOptions = (Document)document.get("options");
-    }
+    }*/
 
     @JsonProperty("database")
     public String getDatabase() {

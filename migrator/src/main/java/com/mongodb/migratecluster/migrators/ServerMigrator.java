@@ -3,7 +3,7 @@ package com.mongodb.migratecluster.migrators;
 import com.mongodb.MongoClient;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.Resource;
-import com.mongodb.migratecluster.observables.DocumentObservable;
+import com.mongodb.migratecluster.observables.DocumentsObservable;
 import io.reactivex.Observable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,12 +43,6 @@ public class ServerMigrator {
                 migrators.add(migrator);
             }
         }
-    }
-
-    public Observable<DocumentObservable> getObservable() {
-        return Observable
-                .fromIterable(this.migrators)
-                .flatMap((DatabaseMigrator m) -> m.getObservable());
     }
 
     public List<DatabaseMigrator> getDatabaseMigrators() {

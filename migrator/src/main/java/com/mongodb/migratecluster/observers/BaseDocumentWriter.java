@@ -21,6 +21,16 @@ public class BaseDocumentWriter {
     protected final ConcurrentMap<String, MongoDatabase> mongoDatabaseMap;
     protected final ConcurrentMap<String, MongoCollection<Document>> mongoCollectionMap;
 
+    private static ConcurrentMap<MongoClient, BaseDocumentWriter> instance = new ConcurrentHashMap<>();
+    public static BaseDocumentWriter getInstance(MongoClient client) {
+        BaseDocumentWriter value = instance.get(client);
+        if (value == null) {
+            value = new BaseDocumentWriter(client);
+            instance.put(client, value);
+        }
+        return  value;
+    }
+
     public BaseDocumentWriter(MongoClient client) {
         this.client = client;
         this.mongoCollectionMap = new ConcurrentHashMap<>();
@@ -38,7 +48,7 @@ public class BaseDocumentWriter {
         return database;
     }
 
-    protected MongoCollection<Document> getMongoCollection(String namespace, String databaseName, String collectionName) {
+    public MongoCollection<Document> getMongoCollection(String namespace, String databaseName, String collectionName) {
         // TODO: Concurrent Dictionary ?
         if (mongoCollectionMap.containsKey(namespace)) {
             return mongoCollectionMap.get(namespace);

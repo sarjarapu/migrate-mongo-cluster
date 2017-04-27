@@ -4,7 +4,8 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.Resource;
-import com.mongodb.migratecluster.observables.DocumentObservable;
+import com.mongodb.migratecluster.observables.DocumentReader;
+import com.mongodb.migratecluster.observables.DocumentsObservable;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,7 @@ public class CollectionMigrator {
     final static Logger logger = LoggerFactory.getLogger(CollectionMigrator.class);
     private final MongoClient client;
     private final Resource resource;
-    private DocumentObservable documents;
+    private DocumentReader documents;
 
     public CollectionMigrator(MongoClient client, Resource resource) throws AppException {
         this.client = client;
@@ -27,11 +28,17 @@ public class CollectionMigrator {
         initialize();
     }
 
+
+
+    public Resource getResource() {
+        return this.resource;
+    }
+
     public String getNamespace() {
         return this.resource.getNamespace();
     }
 
-    public DocumentObservable getObservable() {
+    public DocumentReader getObservable() {
         return documents;
     }
 
@@ -44,6 +51,6 @@ public class CollectionMigrator {
             throw new AppException(message);
         }
 
-        this.documents = new DocumentObservable(this.resource, collection);
+        this.documents = new DocumentReader(collection, this.resource);
     }
 }

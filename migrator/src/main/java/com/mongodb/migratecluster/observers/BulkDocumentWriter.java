@@ -4,14 +4,11 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.observables.ResourceDocument;
-import io.reactivex.Observer;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,7 +20,7 @@ import java.util.stream.Collectors;
  * Description:
  */
 public class BulkDocumentWriter extends BaseDocumentWriter implements Consumer<List<ResourceDocument>> {
-    private final static Logger logger = LoggerFactory.getLogger(DocumentWriter.class);
+    private final static Logger logger = LoggerFactory.getLogger(SingleDocumentWriter.class);
 
     public BulkDocumentWriter(MongoClient client) {
         super(client);
