@@ -19,7 +19,8 @@ https://praveer09.github.io/technology/2016/02/21/rxjava-part-2-creating-an-obse
 http://tomstechnicalblog.blogspot.ca/2015/11/rxjava-achieving-parallelization.html
 http://jaihirsch.github.io/straw-in-a-haystack/mongodb/2014/08/18/mongo-oplog-tailing/
 https://www.mongodb.com/blog/post/tailing-mongodb-oplog-sharded-clusters
-
+http://tomstechnicalblog.blogspot.com/2016/02/rxjava-understanding-observeon-and.html
+http://tomstechnicalblog.blogspot.com/2015/11/rxjava-achieving-parallelization.html
 https://balamaci.github.io/rxjava-walkthrough/
 http://rxmarbles.com/
 https://upday.github.io/blog/reactive_frustrations_1/
