@@ -4,14 +4,18 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.migrators.DataMigrator;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import org.bson.BsonDocument;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * File: DocumentReader
@@ -20,6 +24,7 @@ import java.util.List;
  * Description:
  */
 public class DocumentReader  extends Observable<List<ResourceDocument>> {
+    final static Logger logger = LoggerFactory.getLogger(DocumentReader.class);
     private final Resource resource;
     private  MongoClient client;
     private  MongoCollection<Document> collection;
@@ -38,22 +43,28 @@ public class DocumentReader  extends Observable<List<ResourceDocument>> {
     @Override
     protected void subscribeActual(Observer<? super List<ResourceDocument>> observer) {
         Observable<Object> observable = getDocumentIdsObservable(collection);
-
+        AtomicInteger docsCount = new AtomicInteger(0);
         // ideally return this
         observable
                 .buffer(1000)
                 .flatMap(new Function<List<Object>, Observable<List<ResourceDocument>>>() {
                     @Override
                     public Observable<List<ResourceDocument>> apply(List<Object> ids) throws Exception {
-                        return new DocumentsObservable(collection, getResource(), ids.toArray());
-                                //.subscribeOn(Schedulers.io());
+                        return new DocumentsObservable(collection, getResource(), ids.toArray())
+                               .subscribeOn(Schedulers.io());
                     }
                 })
                 .forEach(k -> {
+                    if (k.size() > 0) {
+                        logger.info("**** DocumentReader. Got {} documents; Total read so far: {} ", k.size(), docsCount.addAndGet(k.size()));
+                    }
+                    //logger.info("**** DocumentReader => I think this is where the error is coming in from k: {}", k);
                     observer.onNext(k);
                 });
-        //observable.blockingLast();
+        // NOTE: by not blocking here, there is possibility of missing last set in the buffer
+        observable.blockingLast();
         observer.onComplete();
+        logger.info("**** DocumentReader => OnComplete. Total Documents Read: {}", docsCount);
     }
 
     private Observable<Object> getDocumentIdsObservable(MongoCollection<Document> collection) {

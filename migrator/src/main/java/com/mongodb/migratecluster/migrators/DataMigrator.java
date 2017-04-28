@@ -67,28 +67,12 @@ public class DataMigrator {
         //Map<String, List<Resource>> sourceResources = MongoDBIteratorHelper.getSourceResources(sourceClient);
         //Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
 
-                /*.filter(new Predicate<Document>() {
-                    @Override
-                    public boolean test(Document document) throws Exception {
-                        return false;
-                    }
-                })
-
-                .filter(db -> {
-                logger.info("db.name: [{}], string: [{}], comparision: [{}]", db.getString("name"), "config", db.getString("name").equals("config" ));
-                return !db.getString("name").equalsIgnoreCase("config");
-            })
-
-                        MongoCollection<org.bson.Document> collection = sourceClient.getDatabase("social").getCollection(name);
-                        return new DocumentReader(collection, new Resource("social", name));
-                */
-
         //FilterIterable filterIterable = new FilterIterable(this.appOptions.getBlackListFilter());
 
         // Note: Working; get the list of databases
         new DatabaseFlowable(sourceClient)
             .filter(db -> {
-                String database = "config";
+                String database = "social";
                 logger.info("db.name: [{}], string: [{}], comparision: [{}]", db.getString("name"), database, db.getString("name").equals(database));
                 return db.getString("name").equalsIgnoreCase(database);
             })
@@ -99,7 +83,7 @@ public class DataMigrator {
                 // Note: Working; CollectionFlowable::subscribeActual works as well
             })
             .filter(resource -> {
-                String collection = "tags";
+                String collection = "people";
                 logger.info("collection.name: [{}], string: [{}], comparision: [{}]",
                         resource.getCollection(), collection, resource.getCollection().equals(collection));
                 return resource.getCollection().equalsIgnoreCase(collection);
@@ -110,19 +94,11 @@ public class DataMigrator {
                 return new DocumentReader(sourceClient, resource);
                 //return resource;
             })
-            .blockingSubscribe(consumer -> {
+            .subscribe(consumer -> {
                 // Note: Nothing in here gets executed
                 logger.info(" ====> subscriber -> found resource {}", consumer.getResource());
                 consumer.blockingLast();
             });
-
-       /* resourceFlowable.map(resource -> {
-                    logger.info(" ===> found resource {}", resource.toString());
-                    return resource;
-                })
-                .blockingSubscribe(c -> {
-                    logger.info(" found collection: {} ", c.toString() );
-                });*/
 
 
         try {
@@ -141,20 +117,6 @@ public class DataMigrator {
                                 });
                     });
             */
-/*
-            Flowable
-                    .just("people")
-                    .map(name -> {
-                        MongoCollection<org.bson.Document> collection = sourceClient.getDatabase("social").getCollection(name);
-                        return new DocumentReader(collection, new Resource("social", name));
-                    })
-                    .map(dr -> new DocumentWriter(targetClient, dr, dr.getResource()))
-                    .subscribe((DocumentWriter d) -> {
-                        logger.info("Waiting for blockingLast on DataMigrator");
-                        d.blockingLast();
-                        logger.info("Completed waiting for blockingLast on DataMigrator");
-                    });
-*/
             Date endDateTime = new Date();
             logger.info(" completed processing at {}", endDateTime);
             logger.info(" total time to process is {}", TimeUnit.SECONDS.convert(endDateTime.getTime() - startDateTime.getTime(), TimeUnit.MILLISECONDS));
