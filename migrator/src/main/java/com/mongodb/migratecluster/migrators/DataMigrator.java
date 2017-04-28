@@ -6,10 +6,7 @@ import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
-import com.mongodb.migratecluster.observables.CollectionFlowable;
-import com.mongodb.migratecluster.observables.DatabaseFlowable;
-import com.mongodb.migratecluster.observables.DocumentReader;
-import com.mongodb.migratecluster.observables.DocumentsObservable;
+import com.mongodb.migratecluster.observables.*;
 import io.reactivex.*;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -62,8 +59,7 @@ public class DataMigrator {
 
     private void readSourceClusterDatabases() throws AppException {
         MongoClient sourceClient = getSourceMongoClient();
-
-        //MongoClient targetClient = getTargetMongoClient();
+        MongoClient targetClient = getTargetMongoClient();
         //Map<String, List<Resource>> sourceResources = MongoDBIteratorHelper.getSourceResources(sourceClient);
         //Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
 
@@ -94,13 +90,18 @@ public class DataMigrator {
                 return new DocumentReader(sourceClient, resource);
                 //return resource;
             })
-            .subscribe(consumer -> {
+            .map(reader -> {
+                logger.info(" ====> reader -> found resource {}", reader.getResource());
+                return new DocumentWriter(targetClient, reader);
+            })
+            .subscribe(writer -> {
                 // Note: Nothing in here gets executed
-                logger.info(" ====> subscriber -> found resource {}", consumer.getResource());
-                consumer.blockingLast();
+                logger.info(" ====> writer -> found resource {}", writer);
+                writer.blockingLast();
             });
 
 
+        // TODO: BUG; code not proceeding to below
         try {
             Date startDateTime = new Date();
             logger.info(" started processing at {}", startDateTime);

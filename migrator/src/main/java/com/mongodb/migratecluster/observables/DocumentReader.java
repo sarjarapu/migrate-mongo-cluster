@@ -56,6 +56,7 @@ public class DocumentReader  extends Observable<List<ResourceDocument>> {
                 })
                 .forEach(k -> {
                     if (k.size() > 0) {
+                        // BUG; Looks like this line is getting executed  twice  for some reason
                         logger.info("**** DocumentReader. Got {} documents; Total read so far: {} ", k.size(), docsCount.addAndGet(k.size()));
                     }
                     //logger.info("**** DocumentReader => I think this is where the error is coming in from k: {}", k);

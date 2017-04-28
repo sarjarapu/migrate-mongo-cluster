@@ -8,6 +8,7 @@ import com.mongodb.migratecluster.observers.BaseDocumentWriter;
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
@@ -32,29 +33,24 @@ public class DocumentWriter extends Observable<List<ResourceDocument>> {
     private final MongoClient client;
     private final Resource resource;
 
-    public DocumentWriter(MongoClient client, DocumentReader documentReader, Resource resource) {
-        this.documentReader = documentReader;
+    public DocumentWriter(MongoClient client, DocumentReader documentReader) {
         this.client = client;
-        this.resource = resource;
+        this.documentReader = documentReader;
+        this.resource = documentReader.getResource();
     }
 
     @Override
     protected void subscribeActual(Observer<? super List<ResourceDocument>> observer) {
-        this.documentReader
-                .flatMap(new Function<List<ResourceDocument>, ObservableSource<Integer>>() {
+        Observable<List<ResourceDocument>> observable = this.documentReader
+                .flatMap(new Function<List<ResourceDocument>, ObservableSource<List<ResourceDocument>>>() {
                     @Override
-                    public ObservableSource<Integer> apply(List<ResourceDocument> documents) throws Exception {
+                    public ObservableSource<List<ResourceDocument>> apply(List<ResourceDocument> documents) throws Exception {
                         // you got entire documents in here
                         // go save them to the target database in parallel
                         return Observable.just(documents)
                                 .subscribeOn(Schedulers.io())
                                 .map(rdocs -> {
-                                    //TODO: you got to have name here hard code for now
-                                    MongoCollection<Document> collection =
-                                            BaseDocumentWriter.getInstance(client).getMongoCollection(
-                                                    resource.getNamespace(),
-                                                    resource.getDatabase(),
-                                                    resource.getCollection());
+                                    MongoCollection<Document> collection = getMongoCollection();
                                     //MongoCollection<Document> collection = targetDatabase.getCollection(resource.getCollection());
                                     String message = String.format(" ... writing to target. docs.size: %s", documents.size());
                                     logger.info(message);
@@ -63,18 +59,29 @@ public class DocumentWriter extends Observable<List<ResourceDocument>> {
                                             .map(rd -> rd.getDocument())
                                             .collect(Collectors.toList());
                                     collection.insertMany(docs);
-                                    return docs;
-                                })
-                                .map(l -> l.size());
+                                    observer.onNext(rdocs);
+                                    return rdocs;
+                                });
                     }
-                })
+                });
+
+        observable
                 .subscribe(k -> {
-                    logger.info("Done processing {}", k.toString());
+                    logger.info("Inserted: {} documents into Resource {}; ", k.size(), this.resource);
                 });
 
         logger.info("Waiting for blockingLast on DocumentWriter");
-        this.documentReader.blockingLast();
+        // this.documentReader.blockingLast();
+        // integerObservable.blockingLast();
         logger.info("Completed waiting for blockingLast on DocumentWriter");
+        observer.onComplete();
+    }
+
+    private MongoCollection<Document> getMongoCollection() {
+        return BaseDocumentWriter.getInstance(client).getMongoCollection(
+                resource.getNamespace(),
+                resource.getDatabase(),
+                resource.getCollection());
     }
 
 

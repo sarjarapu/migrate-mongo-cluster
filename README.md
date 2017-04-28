@@ -24,4 +24,21 @@ usage: migratecluster [-c <arg>] [-d] [-h] [-o <arg>] [-s <arg>] [-t <arg>]
 ## Run the application using sample migration
 java -jar target/migrate-mongo-cluster-1.0-SNAPSHOT-jar-with-dependencies.jar -c ../sample/sample-migration.conf 
 
-641901
+
+## Features to be build into program
+
+Below are the list of features that I thought of incorporating into the application.
+
+- [x] Get databases, collections and docs
+- [x] Save the documents onto target server 
+- [x] Reactive Programming
+- [x] Buffered read / Bulk write 
+- [x] Multithreading
+- [ ] Oplog tail for each replicaSet 
+- [ ] Continuation from where we left off
+- [ ] Retry logic with delay
+- [ ] Error handling, duplicate key, etc
+- [ ] Status Database to keep track of progress 
+- [ ] API to expose status of migrators from database 
+
+
