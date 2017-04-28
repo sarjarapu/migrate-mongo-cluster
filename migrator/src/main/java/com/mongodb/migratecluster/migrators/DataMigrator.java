@@ -2,26 +2,20 @@ package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
-import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
-import com.mongodb.migratecluster.observables.*;
-import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
+import com.mongodb.migratecluster.observables.CollectionFlowable;
+import com.mongodb.migratecluster.observables.DatabaseFlowable;
+import com.mongodb.migratecluster.observables.DocumentReader;
+import com.mongodb.migratecluster.observables.DocumentWriter;
 import com.mongodb.migratecluster.predicates.CollectionFilterPredicate;
-import io.reactivex.Observable;
-import io.reactivex.ObservableSource;
-import io.reactivex.functions.Function;
-import io.reactivex.schedulers.Schedulers;
-import org.bson.Document;
+import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 
@@ -63,20 +57,14 @@ public class DataMigrator {
     private void readSourceClusterDatabases() throws AppException {
         MongoClient sourceClient = getSourceMongoClient();
         MongoClient targetClient = getTargetMongoClient();
-        //Map<String, List<Resource>> sourceResources = MongoDBIteratorHelper.getSourceResources(sourceClient);
-        //Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
-
-        //DatabaseFilterPredicate filterIterable = new DatabaseFilterPredicate(this.options.getBlackListFilter());
 
         try {
             Date startDateTime = new Date();
             logger.info(" started processing at {}", startDateTime);
 
             readAndWriteResourceDocuments(sourceClient, targetClient);
-            //doATestRun(sourceClient);
 
             Date endDateTime = new Date();
-
             logger.info(" completed processing at {}", endDateTime);
             logger.info(" total time to process is {}", TimeUnit.SECONDS.convert(endDateTime.getTime() - startDateTime.getTime(), TimeUnit.MILLISECONDS));
 
@@ -87,28 +75,6 @@ public class DataMigrator {
         }
         logger.info("Absolutely nothing should be here after this line");
     }
-
-    private void doATestRun(MongoClient client) {
-        Resource resource = new Resource("social", "user");
-        MongoCollection<Document> collection = client
-                .getDatabase(resource.getDatabase())
-                .getCollection(resource.getCollection());
-        DocumentIdReader reader = new DocumentIdReader(collection, resource);
-        Observable<List<ResourceDocument>> observable = reader
-                .buffer(1000)
-                .flatMap(new Function<List<Object>, ObservableSource<List<ResourceDocument>>>() {
-                    @Override
-                    public ObservableSource<List<ResourceDocument>> apply(List<Object> ids) throws Exception {
-                        return new DocumentsObservable(collection, resource, ids.toArray())
-                                .subscribeOn(Schedulers.io());
-                    }
-                });
-        observable
-            .blockingSubscribe(id -> {
-            logger.info("## found docId: {}", id.size());
-        });
-    }
-
     private void readAndWriteResourceDocuments(MongoClient sourceClient, MongoClient targetClient) {
         // load the blacklist filters and create database and collection predicates
         List<ResourceFilter> blacklistFilter = options.getBlackListFilter();
@@ -140,15 +106,6 @@ public class DataMigrator {
         targetClient.close();
     }
 
-    private boolean isEntireDatabaseBlackListed(String database) {
-        logger.info(this.options.getBlackListFilter().toString());
-        return this.options.getBlackListFilter()
-                    .stream()
-                    .anyMatch(bl ->
-                            bl.getDatabase().equals(database) &&
-                            bl.isEntireDatabase());
-    }
-
     private MongoClient getMongoClient(String cluster) {
         String connectionString = String.format("mongodb://%s", cluster);
         MongoClientURI uri = new MongoClientURI(connectionString);
@@ -161,38 +118,5 @@ public class DataMigrator {
 
     private MongoClient getTargetMongoClient() {
         return getMongoClient(this.options.getTargetCluster());
-    }
-
-    private Map<String, List<Resource>> getFilteredResources(Map<String, List<Resource>> resources) {
-        List<ResourceFilter> blacklist = options.getBlackListFilter();
-        Map<String, List<Resource>> filteredResources = new HashMap<>(resources);
-
-        // for all resources in blacklist remove them from filteredResources
-        blacklist.forEach(r -> {
-            String db = r.getDatabase();
-            String coll = r.getCollection();
-            if (filteredResources.containsKey(db)) {
-                // check if entire database needs to be skipped
-                if (r.isEntireDatabase()) {
-                    filteredResources.remove(db);
-                }
-                else {
-                    // otherwise just remove the resources by collection name
-                    List<Resource> list = filteredResources.get(db);
-                    list.removeIf(i -> i.getCollection().equals(coll));
-                }
-            }
-        });
-
-        // remove database if it has any empty resource list in it
-        Object[] dbNames = filteredResources.keySet().toArray();
-        for (Object db : dbNames) {
-            String name = db.toString();
-            if (filteredResources.get(name).size() == 0) {
-                filteredResources.remove(name);
-            }
-        }
-
-        return filteredResources;
     }
 }
