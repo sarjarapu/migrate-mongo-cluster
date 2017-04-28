@@ -2,8 +2,6 @@ package com.mongodb.migratecluster.predicates;
 
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
-import io.reactivex.functions.Predicate;
-import org.bson.Document;
 
 import java.util.List;
 import java.util.Map;
@@ -15,16 +13,16 @@ import java.util.stream.Collectors;
  * Date: 4/27/17 9:34 PM
  * Description:
  */
-public abstract class BaseResourcePredicate  {
-    protected final Map<String, List<ResourceFilter>> blacklistResources;
+abstract class BaseResourcePredicate  {
+    private final Map<String, List<ResourceFilter>> blacklistResources;
 
-    public BaseResourcePredicate(List<ResourceFilter> filters) {
+    BaseResourcePredicate(List<ResourceFilter> filters) {
         this.blacklistResources = filters
             .stream()
             .collect(Collectors.groupingBy(ResourceFilter::getDatabase));
     }
 
-    protected boolean isDatabaseInBlackList(String databaseName) {
+    boolean isDatabaseInBlackList(String databaseName) {
         if (this.blacklistResources.containsKey(databaseName)) {
             List<ResourceFilter> filters = this.blacklistResources.get(databaseName);
             if (filters != null && filters.size() > 0) {
@@ -34,7 +32,7 @@ public abstract class BaseResourcePredicate  {
         return false;
     }
 
-    protected boolean isResourceInBlackList(Resource resource) {
+    boolean isResourceInBlackList(Resource resource) {
         String databaseName = resource.getDatabase();
         if (this.blacklistResources.containsKey(databaseName)) {
             List<ResourceFilter> filters = this.blacklistResources.get(databaseName);
