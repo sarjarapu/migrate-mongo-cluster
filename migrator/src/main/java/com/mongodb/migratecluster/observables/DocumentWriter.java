@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * Description:
  */
 public class DocumentWriter extends Observable<List<ResourceDocument>> {
-    private final static Logger logger = LoggerFactory.getLogger(Observable.class);
+    private final static Logger logger = LoggerFactory.getLogger(DocumentWriter.class);
     private final DocumentReader documentReader;
     private final MongoClient client;
     private final Resource resource;
@@ -66,7 +66,7 @@ public class DocumentWriter extends Observable<List<ResourceDocument>> {
                 });
 
         observable
-                .subscribe(k -> {
+                .blockingSubscribe(k -> {
                     logger.info("Inserted: {} documents into Resource {}; ", k.size(), this.resource);
                 });
 

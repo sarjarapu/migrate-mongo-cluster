@@ -46,6 +46,9 @@ public class DocumentReader  extends Observable<List<ResourceDocument>> {
         // TODO BUG: Why is this getting called twice ?
         logger.warn("####### DocumentReader before buffering; docsCount: {}", docsCount);
 
+        // TODO: java.lang.NullPointerException at io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)
+        // have see this error when buffer size (1000) is larger than actual stream (100)
+        // if I make the buffer size smaller than the actual stream then the NPE goes away
         observable
                 .buffer(1000)
                 .flatMap(new Function<List<Object>, Observable<List<ResourceDocument>>>() {
