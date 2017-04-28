@@ -5,7 +5,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.observables.DocumentReader;
-import com.mongodb.migratecluster.observables.DocumentsObservable;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +42,7 @@ public class CollectionMigrator {
     }
 
     private void initialize() throws AppException {
-        MongoCollection<Document> collection = IteratorHelper.getMongoCollection(this.client, this.resource);
+        MongoCollection<Document> collection = MongoDBIteratorHelper.getMongoCollection(this.client, this.resource);
 
         if (collection == null) {
             String message = "looks like no collections found in the source";

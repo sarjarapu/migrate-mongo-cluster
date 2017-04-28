@@ -2,22 +2,19 @@ package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
+import com.mongodb.migratecluster.observables.CollectionFlowable;
+import com.mongodb.migratecluster.observables.DatabaseFlowable;
 import com.mongodb.migratecluster.observables.DocumentReader;
-import com.mongodb.migratecluster.observables.DocumentWriter;
-import com.mongodb.migratecluster.observables.ResourceDocument;
-import com.mongodb.migratecluster.observers.BulkDocumentWriter;
-import io.reactivex.Flowable;
-import io.reactivex.Observable;
-import io.reactivex.functions.Consumer;
+import com.mongodb.migratecluster.observables.DocumentsObservable;
+import io.reactivex.*;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.text.Document;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -65,9 +62,68 @@ public class DataMigrator {
 
     private void readSourceClusterDatabases() throws AppException {
         MongoClient sourceClient = getSourceMongoClient();
-        MongoClient targetClient = getTargetMongoClient();
-        Map<String, List<Resource>> sourceResources = IteratorHelper.getSourceResources(sourceClient);
-        Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
+
+        //MongoClient targetClient = getTargetMongoClient();
+        //Map<String, List<Resource>> sourceResources = MongoDBIteratorHelper.getSourceResources(sourceClient);
+        //Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
+
+                /*.filter(new Predicate<Document>() {
+                    @Override
+                    public boolean test(Document document) throws Exception {
+                        return false;
+                    }
+                })
+
+                .filter(db -> {
+                logger.info("db.name: [{}], string: [{}], comparision: [{}]", db.getString("name"), "config", db.getString("name").equals("config" ));
+                return !db.getString("name").equalsIgnoreCase("config");
+            })
+
+                        MongoCollection<org.bson.Document> collection = sourceClient.getDatabase("social").getCollection(name);
+                        return new DocumentReader(collection, new Resource("social", name));
+                */
+
+        //FilterIterable filterIterable = new FilterIterable(this.appOptions.getBlackListFilter());
+
+        // Note: Working; get the list of databases
+        new DatabaseFlowable(sourceClient)
+            .filter(db -> {
+                String database = "config";
+                logger.info("db.name: [{}], string: [{}], comparision: [{}]", db.getString("name"), database, db.getString("name").equals(database));
+                return db.getString("name").equalsIgnoreCase(database);
+            })
+            // Note: Working; for each database get the list of collections in it
+            .flatMap(db -> {
+                logger.info(" => found database {}", db.getString("name"));
+                return new CollectionFlowable(sourceClient, db.getString("name"));
+                // Note: Working; CollectionFlowable::subscribeActual works as well
+            })
+            .filter(resource -> {
+                String collection = "tags";
+                logger.info("collection.name: [{}], string: [{}], comparision: [{}]",
+                        resource.getCollection(), collection, resource.getCollection().equals(collection));
+                return resource.getCollection().equalsIgnoreCase(collection);
+            })
+            .map(resource -> {
+                // Note: Nothing in here gets executed
+                logger.info(" ====> map -> found resource {}", resource.toString());
+                return new DocumentReader(sourceClient, resource);
+                //return resource;
+            })
+            .blockingSubscribe(consumer -> {
+                // Note: Nothing in here gets executed
+                logger.info(" ====> subscriber -> found resource {}", consumer.getResource());
+                consumer.blockingLast();
+            });
+
+       /* resourceFlowable.map(resource -> {
+                    logger.info(" ===> found resource {}", resource.toString());
+                    return resource;
+                })
+                .blockingSubscribe(c -> {
+                    logger.info(" found collection: {} ", c.toString() );
+                });*/
+
 
         try {
             Date startDateTime = new Date();
@@ -85,6 +141,7 @@ public class DataMigrator {
                                 });
                     });
             */
+/*
             Flowable
                     .just("people")
                     .map(name -> {
@@ -97,7 +154,7 @@ public class DataMigrator {
                         d.blockingLast();
                         logger.info("Completed waiting for blockingLast on DataMigrator");
                     });
-
+*/
             Date endDateTime = new Date();
             logger.info(" completed processing at {}", endDateTime);
             logger.info(" total time to process is {}", TimeUnit.SECONDS.convert(endDateTime.getTime() - startDateTime.getTime(), TimeUnit.MILLISECONDS));
@@ -109,12 +166,21 @@ public class DataMigrator {
         sourceClient.close();
     }
 
+    private boolean isEntireDatabaseBlackListed(String database) {
+        logger.info(this.appOptions.getBlackListFilter().toString());
+        return this.appOptions.getBlackListFilter()
+                    .stream()
+                    .anyMatch(bl ->
+                            bl.getDatabase() == database &&
+                            bl.isEntireDatabase());
+    }
+
 /*
 
     private void readSourceClusterDatabasesOld() throws AppException {
         MongoClient sourceClient = getSourceMongoClient();
         MongoClient targetClient = getTargetMongoClient();
-        Map<String, List<Resource>> sourceResources = IteratorHelper.getSourceResources(sourceClient);
+        Map<String, List<Resource>> sourceResources = MongoDBIteratorHelper.getSourceResources(sourceClient);
         Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
 
 

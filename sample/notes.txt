@@ -1,7 +1,24 @@
 
+http://stackoverflow.com/questions/43669230/rxjava-flowable-map-not-getting-called-after-flatmap
+
+https://praveer09.github.io/technology/2016/02/21/rxjava-part-2-creating-an-observable/
 http://tomstechnicalblog.blogspot.ca/2015/11/rxjava-achieving-parallelization.html
 http://jaihirsch.github.io/straw-in-a-haystack/mongodb/2014/08/18/mongo-oplog-tailing/
 https://www.mongodb.com/blog/post/tailing-mongodb-oplog-sharded-clusters
+
+https://balamaci.github.io/rxjava-walkthrough/
+http://rxmarbles.com/
+https://upday.github.io/blog/reactive_frustrations_1/
+http://vlkan.com/blog/post/2016/07/20/rxjava-backpressure/
+https://github.com/ReactiveX/RxJava/wiki/The-RxJava-Android-Module
+https://github.com/amitshekhariitbhu/RxJava2-Android-Samples/blob/master/app/src/main/java/com/rxjava2/android/samples/ui/operators/FlowableExampleActivity.java
+
+https://github.com/ReactiveX/RxJava/issues
+https://medium.com/jtribe/rxjava-2-0-what-im-looking-forward-to-d6aac6419a76
+https://blog.mindorks.com/migrating-from-rxjava1-to-rxjava2-5dac0a94b4aa
+
+http://akarnokd.blogspot.com/2016/02/flatmap-part-1.html
+https://github.com/ReactiveX/RxJava/wiki/Backpressure
 
 // db.adminCommand({flushRouterConfig: true})
 // sh.stopBalancer
@@ -80,3 +97,89 @@ code:
     public static int randInt(int min, int max) {
         return rand.nextInt((max - min) + 1) + min;
     }
+
+
+
+
+    private void FlowableExample() {
+        Flowable.create(new FlowableOnSubscribe<Integer>(){
+
+            @Override
+            public void subscribe(FlowableEmitter<Integer> emitter) throws Exception {
+                emitter.onNext(1);
+                Thread.sleep(10);
+
+                emitter.onNext(2);
+                Thread.sleep(10);
+
+                emitter.onNext(3);
+                Thread.sleep(10);
+
+                emitter.onComplete();
+            }
+        }, BackpressureStrategy.BUFFER)
+                .flatMap(d -> {
+                    return Flowable.create(new FlowableOnSubscribe<Integer>() {
+                        @Override
+                        public void subscribe(FlowableEmitter<Integer> emitter) throws Exception {
+                            logger.info("=> Got a number: {}", d);
+
+                            emitter.onNext(1 + d * 10);
+                            Thread.sleep(10);
+
+                            emitter.onNext(2 + d * 10);
+                            Thread.sleep(10);
+
+                            emitter.onNext(3 + d * 10);
+                            Thread.sleep(10);
+
+                            emitter.onComplete();
+                        }
+                    }, BackpressureStrategy.BUFFER);
+                })
+                .subscribe(d -> {
+                    logger.info("==> Got a number: {}", d);
+                });
+    }
+
+    private void ObservableExample() {
+        Observable.create(new ObservableOnSubscribe<Integer>(){
+
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                emitter.onNext(1);
+                Thread.sleep(10);
+
+                emitter.onNext(2);
+                Thread.sleep(10);
+
+                emitter.onNext(3);
+                Thread.sleep(10);
+
+                emitter.onComplete();
+            }
+        })
+        .flatMap(d -> {
+            return Observable.create(new ObservableOnSubscribe<Integer>() {
+                @Override
+                public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                    logger.info("=> Got a number: {}", d);
+
+                    emitter.onNext(1 + d * 10);
+                    Thread.sleep(10);
+
+                    emitter.onNext(2 + d * 10);
+                    Thread.sleep(10);
+
+                    emitter.onNext(3 + d * 10);
+                    Thread.sleep(10);
+
+                    emitter.onComplete();
+                }
+            });
+        })
+        .subscribe(d -> {
+            logger.info("==> Got a number: {}", d);
+        });
+    }
+

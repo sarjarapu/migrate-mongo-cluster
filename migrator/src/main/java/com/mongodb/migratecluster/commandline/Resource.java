@@ -25,28 +25,19 @@ public class Resource {
         this.collection = collection;
     }
 
-/*
-    public Resource(String database, Document document) {
-        this(database, document.getString("name"));
-        this.collectionOptions = (Document)document.get("options");
-    }*/
-
-    @JsonProperty("database")
-    public String getDatabase() {
-        return database;
+    public Resource(String database, String collection, Document collectionOptions) {
+        this(database, collection);
+        this.collectionOptions = collectionOptions;
     }
 
-    public void setDatabase(String database) {
-        this.database = database;
+    @JsonProperty("database")
+    public String   getDatabase() {
+        return database;
     }
 
     @JsonProperty("collection")
     public String getCollection() {
         return collection;
-    }
-
-    public void setCollection(String collection) {
-        this.collection = collection;
     }
 
     @JsonIgnore

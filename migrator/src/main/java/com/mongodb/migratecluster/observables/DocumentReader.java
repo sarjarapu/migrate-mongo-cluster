@@ -1,5 +1,6 @@
 package com.mongodb.migratecluster.observables;
 
+import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.commandline.Resource;
@@ -19,9 +20,16 @@ import java.util.List;
  * Description:
  */
 public class DocumentReader  extends Observable<List<ResourceDocument>> {
-    private final MongoCollection<Document> collection;
     private final Resource resource;
+    private  MongoClient client;
+    private  MongoCollection<Document> collection;
 
+    public DocumentReader(MongoClient client, Resource resource) {
+        this.resource = resource;
+        this.collection = client.getDatabase(resource.getDatabase()).getCollection(resource.getCollection());
+    }
+
+    // TODO: Remove this code
     public DocumentReader(MongoCollection<Document> collection, Resource resource) {
         this.collection = collection;
         this.resource = resource;
@@ -37,14 +45,14 @@ public class DocumentReader  extends Observable<List<ResourceDocument>> {
                 .flatMap(new Function<List<Object>, Observable<List<ResourceDocument>>>() {
                     @Override
                     public Observable<List<ResourceDocument>> apply(List<Object> ids) throws Exception {
-                        return new DocumentsObservable(collection, getResource(), ids.toArray())
-                                .subscribeOn(Schedulers.io());
+                        return new DocumentsObservable(collection, getResource(), ids.toArray());
+                                //.subscribeOn(Schedulers.io());
                     }
                 })
                 .forEach(k -> {
                     observer.onNext(k);
                 });
-        observable.blockingLast();
+        //observable.blockingLast();
         observer.onComplete();
     }
 

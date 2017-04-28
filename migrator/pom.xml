@@ -61,7 +61,6 @@
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
-                <targetPath>${project.build.directory}</targetPath>
                 <includes>
                     <include>log4j.properties</include>
                 </includes>
@@ -101,7 +100,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>com.mongodb.migratecluster.App</mainClass>
+                            <mainClass>com.mongodb.migratecluster.Application</mainClass>
                         </manifest>
                         <manifestEntries>
                             <Class-Path>.</Class-Path>
