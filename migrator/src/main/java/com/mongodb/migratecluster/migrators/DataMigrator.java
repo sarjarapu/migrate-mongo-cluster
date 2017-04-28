@@ -25,18 +25,18 @@ import java.util.concurrent.TimeUnit;
  */
 public class DataMigrator {
     final static Logger logger = LoggerFactory.getLogger(DataMigrator.class);
-    private ApplicationOptions appOptions;
+    private ApplicationOptions options;
 
-    public DataMigrator(ApplicationOptions appOptions) {
-        this.appOptions = appOptions;
+    public DataMigrator(ApplicationOptions options) {
+        this.options = options;
     }
 
     private boolean isValidOptions() {
-        // on appOptions source, target, oplog must all be present
+        // source, target, oplog
         if (
-                (this.appOptions.getSourceCluster().equals("")) ||
-                (this.appOptions.getTargetCluster().equals("")) ||
-                (this.appOptions.getOplogStore().equals(""))
+                (this.options.getSourceCluster().equals("")) ||
+                (this.options.getTargetCluster().equals("")) ||
+                (this.options.getOplogStore().equals(""))
             ) {
             // invalid input
             return false;
@@ -45,9 +45,9 @@ public class DataMigrator {
     }
 
     public void process() throws AppException {
-        // check if the appOptions are valid
+        // check if the options are valid
         if (!this.isValidOptions()) {
-            String message = String.format("invalid input args for sourceCluster, targetCluster and oplog. \ngiven: %s", this.appOptions.toString());
+            String message = String.format("invalid input args for sourceCluster, targetCluster and oplog. \ngiven: %s", this.options.toString());
             throw new AppException(message);
         }
 
@@ -61,7 +61,7 @@ public class DataMigrator {
         //Map<String, List<Resource>> sourceResources = MongoDBIteratorHelper.getSourceResources(sourceClient);
         //Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
 
-        //FilterIterable filterIterable = new FilterIterable(this.appOptions.getBlackListFilter());
+        //FilterIterable filterIterable = new FilterIterable(this.options.getBlackListFilter());
 
 
         // TODO: BUG; code not proceeding to below
@@ -122,8 +122,8 @@ public class DataMigrator {
     }
 
     private boolean isEntireDatabaseBlackListed(String database) {
-        logger.info(this.appOptions.getBlackListFilter().toString());
-        return this.appOptions.getBlackListFilter()
+        logger.info(this.options.getBlackListFilter().toString());
+        return this.options.getBlackListFilter()
                     .stream()
                     .anyMatch(bl ->
                             bl.getDatabase().equals(database) &&
@@ -137,15 +137,15 @@ public class DataMigrator {
     }
 
     private MongoClient getSourceMongoClient() {
-        return getMongoClient(this.appOptions.getSourceCluster());
+        return getMongoClient(this.options.getSourceCluster());
     }
 
     private MongoClient getTargetMongoClient() {
-        return getMongoClient(this.appOptions.getTargetCluster());
+        return getMongoClient(this.options.getTargetCluster());
     }
 
     private Map<String, List<Resource>> getFilteredResources(Map<String, List<Resource>> resources) {
-        List<ResourceFilter> blacklist = appOptions.getBlackListFilter();
+        List<ResourceFilter> blacklist = options.getBlackListFilter();
         Map<String, List<Resource>> filteredResources = new HashMap<>(resources);
 
         // for all resources in blacklist remove them from filteredResources

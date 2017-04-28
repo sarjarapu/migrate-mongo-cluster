@@ -50,7 +50,6 @@ public class Application {
                 appOptions = ApplicationOptionsLoader.load(configFilePath);
             } catch (AppException e) {
                 logger.error(e.getMessage());
-                System.err.println(e.getMessage());
                 System.exit(1);
             }
         }
