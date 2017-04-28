@@ -42,7 +42,7 @@ public class DocumentsObservable extends Observable<List<ResourceDocument>> {
         FindIterable<Document> documents =
                 this.collection
                         .find(filter);
-        List<Document> docs = new ArrayList<Document>();
+        List<Document> docs = new ArrayList<>();
         for (Document item : documents) {
             docs.add(item);
         }

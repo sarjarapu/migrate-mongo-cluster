@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class DocumentReader  extends Observable<List<ResourceDocument>> {
     final static Logger logger = LoggerFactory.getLogger(DocumentReader.class);
     private final Resource resource;
-    private  MongoClient client;
     private  MongoCollection<Document> collection;
 
     public DocumentReader(MongoClient client, Resource resource) {
@@ -42,49 +41,46 @@ public class DocumentReader  extends Observable<List<ResourceDocument>> {
 
     @Override
     protected void subscribeActual(Observer<? super List<ResourceDocument>> observer) {
-        Observable<Object> observable = getDocumentIdsObservable(collection);
+        Observable<Object> observable = new DocumentIdReader(collection, resource);
         AtomicInteger docsCount = new AtomicInteger(0);
-        // ideally return this
+        // TODO BUG: Why is this getting called twice ?
+        logger.warn("####### DocumentReader before buffering; docsCount: {}", docsCount);
+
         observable
                 .buffer(1000)
                 .flatMap(new Function<List<Object>, Observable<List<ResourceDocument>>>() {
                     @Override
                     public Observable<List<ResourceDocument>> apply(List<Object> ids) throws Exception {
+                        // TODO BUG: Why is this getting called twice ?
+                        logger.warn("####### DocumentReader getting subscribed twice; ids: {}", ids);
+
                         return new DocumentsObservable(collection, getResource(), ids.toArray())
-                               .subscribeOn(Schedulers.io());
+                                .subscribeOn(Schedulers.io());
                     }
                 })
-                .forEach(k -> {
-                    if (k.size() > 0) {
-                        // BUG; Looks like this line is getting executed  twice  for some reason
-                        logger.info("**** DocumentReader. Got {} documents; Total read so far: {} ", k.size(), docsCount.addAndGet(k.size()));
-                    }
-                    //logger.info("**** DocumentReader => I think this is where the error is coming in from k: {}", k);
+                .blockingSubscribe(k -> {
+                    logger.info("reader for resource: {} got {} documents; so far read total {} documents in this run.",
+                            this.resource.getNamespace(),  k.size(), docsCount.addAndGet(k.size()));
                     observer.onNext(k);
                 });
+                /*.forEach(k -> {
+                    if (k == null) {
+                        logger.error("trying to catch the error where its trying to read faster than its available");
+                        return ;
+                    }
+                    if (k.size() > 0) {
+                        logger.info("reader for resource: {} got {} documents; so far read total {} documents in this run.",
+                                this.resource.getNamespace(),  k.size(), docsCount.addAndGet(k.size()));
+                    }
+                    // TODO: BUG I think this is where the error is coming in from k: {}", k);
+                    observer.onNext(k);
+                });*/
         // NOTE: by not blocking here, there is possibility of missing last set in the buffer
         observable.blockingLast();
+        // TODO BUG: Unless its done with the above code it should not come here . but this could be a bug
         observer.onComplete();
-        logger.info("**** DocumentReader => OnComplete. Total Documents Read: {}", docsCount);
-    }
-
-    private Observable<Object> getDocumentIdsObservable(MongoCollection<Document> collection) {
-        return new Observable<Object>() {
-            @Override
-            protected void subscribeActual(Observer<? super Object> observer) {
-                FindIterable<Document> documents = collection
-                        .find()
-                        .projection(BsonDocument.parse("{_id: 1}"))
-                        .sort(BsonDocument.parse("{$natural: 1}"))
-                        .batchSize(5000);
-                for (Document item : documents) {
-                    if (!item.isEmpty()) {
-                        observer.onNext(item.get("_id"));
-                    }
-                }
-                observer.onComplete();
-            }
-        };
+        logger.info("reader for resource: {} completed. total documents read: {}",
+                this.resource.getNamespace(),  docsCount);
     }
 
     public Resource getResource() {
