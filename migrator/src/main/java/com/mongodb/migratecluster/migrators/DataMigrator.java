@@ -7,8 +7,6 @@ import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
 import com.mongodb.migratecluster.observables.*;
-import io.reactivex.*;
-import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,9 +34,9 @@ public class DataMigrator {
     private boolean isValidOptions() {
         // on appOptions source, target, oplog must all be present
         if (
-                (this.appOptions.getSourceCluster() == "") ||
-                (this.appOptions.getTargetCluster() == "") ||
-                (this.appOptions.getOplogStore() == "")
+                (this.appOptions.getSourceCluster().equals("")) ||
+                (this.appOptions.getTargetCluster().equals("")) ||
+                (this.appOptions.getOplogStore().equals(""))
             ) {
             // invalid input
             return false;
@@ -65,59 +63,15 @@ public class DataMigrator {
 
         //FilterIterable filterIterable = new FilterIterable(this.appOptions.getBlackListFilter());
 
-        // Note: Working; get the list of databases
-        new DatabaseFlowable(sourceClient)
-            .filter(db -> {
-                String database = "social";
-                logger.info("db.name: [{}], string: [{}], comparision: [{}]", db.getString("name"), database, db.getString("name").equals(database));
-                return db.getString("name").equalsIgnoreCase(database);
-            })
-            // Note: Working; for each database get the list of collections in it
-            .flatMap(db -> {
-                logger.info(" => found database {}", db.getString("name"));
-                return new CollectionFlowable(sourceClient, db.getString("name"));
-                // Note: Working; CollectionFlowable::subscribeActual works as well
-            })
-            .filter(resource -> {
-                String collection = "people";
-                logger.info("collection.name: [{}], string: [{}], comparision: [{}]",
-                        resource.getCollection(), collection, resource.getCollection().equals(collection));
-                return resource.getCollection().equalsIgnoreCase(collection);
-            })
-            .map(resource -> {
-                // Note: Nothing in here gets executed
-                logger.info(" ====> map -> found resource {}", resource.toString());
-                return new DocumentReader(sourceClient, resource);
-                //return resource;
-            })
-            .map(reader -> {
-                logger.info(" ====> reader -> found resource {}", reader.getResource());
-                return new DocumentWriter(targetClient, reader);
-            })
-            .subscribe(writer -> {
-                // Note: Nothing in here gets executed
-                logger.info(" ====> writer -> found resource {}", writer);
-                writer.blockingLast();
-            });
-
 
         // TODO: BUG; code not proceeding to below
         try {
             Date startDateTime = new Date();
             logger.info(" started processing at {}", startDateTime);
-            //ServerMigrator serverMigrator = new ServerMigrator(sourceClient, filteredSourceResources);
-            //BulkDocumentWriter bulkDocumentWriter = new BulkDocumentWriter(targetClient);
-/*
-            serverMigrator
-                    .getDatabaseMigrators()
-                    .forEach(dm -> {
-                        dm.getObservable()
-                                .map(dr -> new DocumentWriter(targetClient, dr, dr.getResource()))
-                                .subscribe((DocumentWriter d) -> {
-                                    d.blockingLast();
-                                });
-                    });
-            */
+
+            readAndWriteResourceDocuments(sourceClient, targetClient);
+
+
             Date endDateTime = new Date();
             logger.info(" completed processing at {}", endDateTime);
             logger.info(" total time to process is {}", TimeUnit.SECONDS.convert(endDateTime.getTime() - startDateTime.getTime(), TimeUnit.MILLISECONDS));
@@ -127,6 +81,44 @@ public class DataMigrator {
             throw new AppException(message, e);
         }
         sourceClient.close();
+        logger.info("Absolutely nothing should be here after this line");
+    }
+
+    private void readAndWriteResourceDocuments(MongoClient sourceClient, MongoClient targetClient) {
+        // Note: Working; get the list of databases
+        new DatabaseFlowable(sourceClient)
+                .filter(db -> {
+                    String database = "social";
+                    logger.info("db.name: [{}], string: [{}], comparision: [{}]", db.getString("name"), database, db.getString("name").equals(database));
+                    return db.getString("name").equalsIgnoreCase(database);
+                })
+                // Note: Working; for each database get the list of collections in it
+                .flatMap(db -> {
+                    logger.info(" => found database {}", db.getString("name"));
+                    return new CollectionFlowable(sourceClient, db.getString("name"));
+                    // Note: Working; CollectionFlowable::subscribeActual works as well
+                })
+                .filter(resource -> {
+                    String collection = "people";
+                    logger.info("collection.name: [{}], string: [{}], comparision: [{}]",
+                            resource.getCollection(), collection, resource.getCollection().equals(collection));
+                    return resource.getCollection().equalsIgnoreCase(collection);
+                })
+                .map(resource -> {
+                    // Note: Nothing in here gets executed
+                    logger.info(" ====> map -> found resource {}", resource.toString());
+                    return new DocumentReader(sourceClient, resource);
+                    //return resource;
+                })
+                .map(reader -> {
+                    logger.info(" ====> reader -> found resource {}", reader.getResource());
+                    return new DocumentWriter(targetClient, reader);
+                })
+                .subscribe(writer -> {
+                    // Note: Nothing in here gets executed
+                    logger.info(" ====> writer -> found resource {}", writer);
+                    writer.blockingLast();
+                });
     }
 
     private boolean isEntireDatabaseBlackListed(String database) {
@@ -134,115 +126,9 @@ public class DataMigrator {
         return this.appOptions.getBlackListFilter()
                     .stream()
                     .anyMatch(bl ->
-                            bl.getDatabase() == database &&
+                            bl.getDatabase().equals(database) &&
                             bl.isEntireDatabase());
     }
-
-/*
-
-    private void readSourceClusterDatabasesOld() throws AppException {
-        MongoClient sourceClient = getSourceMongoClient();
-        MongoClient targetClient = getTargetMongoClient();
-        Map<String, List<Resource>> sourceResources = MongoDBIteratorHelper.getSourceResources(sourceClient);
-        Map<String, List<Resource>> filteredSourceResources = getFilteredResources(sourceResources);
-
-
-        try {
-            Date startDateTime = new Date();
-            logger.info(" started processing at {}", startDateTime);
-            ServerMigrator serverMigrator = new ServerMigrator(sourceClient, filteredSourceResources);
-            BulkDocumentWriter bulkDocumentWriter = new BulkDocumentWriter(targetClient);
-
-            serverMigrator
-                .getDatabaseMigrators()
-                .forEach(dm -> {
-                    dm.getCollectionMigrators()
-                        .forEach(cm -> {
-                            // _id only, read 500 at a time, split 5 parallel document fetchers
-                            cm.getObservable()
-                                .buffer(500)
-                                    .map(new Function<List<ResourceDocument>, List<ResourceDocument>>() {
-                                        @Override
-                                        public List<ResourceDocument> apply(List<ResourceDocument> documentList) throws Exception {
-                                            return Observable
-                                                    .just(documentList)
-                                                    .subscribeOn(Schedulers.io())
-                                                    .map(new Function<List<ResourceDocument>, List<ResourceDocument>>() {
-                                                        @Override
-                                                        public List<ResourceDocument> apply(List<ResourceDocument> documentList) throws Exception l -> {
-                                                            String message = String.format(" .... Reading docs on thread: %s",
-                                                                    Thread.currentThread().getId());
-                                                            logger.info(message);
-                                                            Thread.sleep(10);
-                                                            return documentList;
-                                                        }
-                                                    });
-                                        }
-                                    })
-                                    .subscribe(l -> {
-                                        String message = String.format(" .... Writing docs on thread: %s",
-                                                Thread.currentThread().getId());
-                                        logger.info(message);
-                                    });
-                                */
-/*.flatMap(new Function<List<ResourceDocument>, ObservableSource<List<ResourceDocument>>>() {
-                                    @Override
-                                    public ObservableSource<List<ResourceDocument>> apply(List<ResourceDocument> documentList) throws Exception {
-                                        return Observable
-                                                .just(documentList)
-                                                .subscribeOn(Schedulers.io())
-                                                .map(l -> {
-                                                    String message = String.format(" .... Reading docs on thread: %s",
-                                                            Thread.currentThread().getId());
-                                                    logger.info(message);
-                                                    Thread.sleep(10);
-                                                    return l;
-                                                });
-                                    }
-                                })
-                                    .subscribe(new Consumer<List<ResourceDocument>>() {
-                                        @Override
-                                        public void accept(List<ResourceDocument> integers) throws Exception {
-                                            String message = String.format(" .... Writing docs on thread: %s",
-                                                    Thread.currentThread().getId());
-                                            logger.info(message);
-                                            System.out.println(message);
-                                        }
-                                    });*//*
-
-                                //.subscribe(bulkDocumentWriter);
-                        });
-                });
-            try {
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            */
-/*
-            // previously working
-            // single threaded bulkDocumentWriter
-            serverMigrator
-                    .getObservable()
-                    .flatMap(d -> d)
-                    .buffer(500)
-                    ////.
-                    //.subscribeOn(Schedulers.io())
-                    //.observeOn(Schedulers.single())
-                    .subscribe(bulkDocumentWriter);
-            *//*
-
-            Date endDateTime = new Date();
-            logger.info(" completed processing at {}", endDateTime);
-            logger.info(" total time to process is {}", TimeUnit.SECONDS.convert(endDateTime.getTime() - startDateTime.getTime(), TimeUnit.MILLISECONDS));
-        } catch (AppException e) {
-            String message = "error in while processing server migration.";
-            logger.error(message, e);
-            throw new AppException(message, e);
-        }
-        sourceClient.close();
-    }
-*/
 
     private MongoClient getMongoClient(String cluster) {
         String connectionString = String.format("mongodb://%s", cluster);
