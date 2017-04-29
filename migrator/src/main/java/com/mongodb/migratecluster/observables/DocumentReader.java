@@ -1,15 +1,12 @@
 package com.mongodb.migratecluster.observables;
 
 import com.mongodb.MongoClient;
-import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.commandline.Resource;
-import com.mongodb.migratecluster.migrators.DataMigrator;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
-import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +40,7 @@ public class DocumentReader  extends Observable<List<ResourceDocument>> {
     protected void subscribeActual(Observer<? super List<ResourceDocument>> observer) {
         Observable<Object> observable = new DocumentIdReader(collection, resource);
         AtomicInteger docsCount = new AtomicInteger(0);
-        // TODO: java.lang.NullPointerException at io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)
-        // have see this error when buffer size (1000) is larger than actual stream (100)
-        // if I make the buffer size smaller than the actual stream then the NPE goes away
+
         observable
                 .buffer(1000)
                 .flatMap(new Function<List<Object>, Observable<List<ResourceDocument>>>() {

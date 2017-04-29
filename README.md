@@ -35,6 +35,7 @@ Below are the list of features that I thought of incorporating into the applicat
 - [x] Buffered read / Bulk write 
 - [x] Multithreading - Read full documents in a different thread
 - [x] Multithreading - Write full documents in a different thread
+- [ ] Drop database / collection before inserting
 - [ ] Oplog tail for each replicaSet 
 - [ ] Continuation from where we left off
 - [ ] Retry logic with delay
