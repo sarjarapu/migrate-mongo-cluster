@@ -54,9 +54,6 @@ public class DocumentReader  extends Observable<List<ResourceDocument>> {
                 .flatMap(new Function<List<Object>, Observable<List<ResourceDocument>>>() {
                     @Override
                     public Observable<List<ResourceDocument>> apply(List<Object> ids) throws Exception {
-                        // TODO BUG: Why is this getting called twice ?
-                        logger.warn("####### DocumentReader getting subscribed twice; ids: {}", ids);
-
                         return new DocumentsObservable(collection, getResource(), ids.toArray())
                                 .subscribeOn(Schedulers.io());
                     }
@@ -66,18 +63,6 @@ public class DocumentReader  extends Observable<List<ResourceDocument>> {
                             this.resource.getNamespace(),  k.size(), docsCount.addAndGet(k.size()));
                     observer.onNext(k);
                 });
-                /*.forEach(k -> {
-                    if (k == null) {
-                        logger.error("trying to catch the error where its trying to read faster than its available");
-                        return ;
-                    }
-                    if (k.size() > 0) {
-                        logger.info("reader for resource: {} got {} documents; so far read total {} documents in this run.",
-                                this.resource.getNamespace(),  k.size(), docsCount.addAndGet(k.size()));
-                    }
-                    // TODO: BUG I think this is where the error is coming in from k: {}", k);
-                    observer.onNext(k);
-                });*/
         // NOTE: by not blocking here, there is possibility of missing last set in the buffer
         observable.blockingLast();
         // TODO BUG: Unless its done with the above code it should not come here . but this could be a bug
