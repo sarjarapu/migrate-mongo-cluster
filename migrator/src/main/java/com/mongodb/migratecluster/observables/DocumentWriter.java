@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * File: migrator
- * Author: shyamarjarapu
+ * File: DocumentWriter
+ * Author: shyam.arjarapu
  * Date: 4/26/17 5:02 AM
  * Description:
  */
