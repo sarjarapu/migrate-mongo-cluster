@@ -38,21 +38,31 @@ public class DocumentsObservable extends Observable<List<ResourceDocument>> {
 
     @Override
     protected void subscribeActual(Observer<? super List<ResourceDocument>> observer) {
-        Bson filter = in("_id", this.ids);
-        FindIterable<Document> documents =
-                this.collection
-                        .find(filter);
+        List<Document> documents = getDocumentsFromDB();
+        List<ResourceDocument> resourceDocuments = createResourceDocumentsFrom(documents);
+
+        String message = String.format(" read %s full documents based on given _id's. ", documents.size());
+        logger.info(message);
+
+        observer.onNext(resourceDocuments);
+        observer.onComplete();
+    }
+
+    private List<Document> getDocumentsFromDB() {
         List<Document> docs = new ArrayList<>();
+        Bson filter = in("_id", this.ids);
+        FindIterable<Document> documents = this.collection.find(filter);
+        // find the full documents for given set of _id's
         for (Document item : documents) {
             docs.add(item);
         }
-        String message = String.format(" read %s full documents based on given _id's. ", docs.size());
-        logger.info(message);
+        return docs;
+    }
 
-        List<ResourceDocument> resourceDocuments = docs.stream()
+    private List<ResourceDocument> createResourceDocumentsFrom(List<Document> docs) {
+        // create resource documents from bson.document
+        return docs.stream()
                 .map(d -> new ResourceDocument(this.resource, d))
                 .collect(Collectors.toList());
-        observer.onNext(resourceDocuments);
-        observer.onComplete();
     }
 }
