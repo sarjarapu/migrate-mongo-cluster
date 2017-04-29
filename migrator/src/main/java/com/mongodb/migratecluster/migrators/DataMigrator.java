@@ -2,8 +2,11 @@ package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
+import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
 import com.mongodb.migratecluster.observables.CollectionFlowable;
 import com.mongodb.migratecluster.observables.DatabaseFlowable;
@@ -11,6 +14,7 @@ import com.mongodb.migratecluster.observables.DocumentReader;
 import com.mongodb.migratecluster.observables.DocumentWriter;
 import com.mongodb.migratecluster.predicates.CollectionFilterPredicate;
 import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,16 +88,16 @@ public class DataMigrator {
         new DatabaseFlowable(sourceClient)
                 .filter(databasePredicate)
                 .flatMap(db -> {
-                    logger.debug(" found database: {}", db.getString("name"));
+                    logger.info(" found database: {}", db.getString("name"));
                     return new CollectionFlowable(sourceClient, db.getString("name"));
                 })
                 .filter(collectionPredicate)
                 .map(resource -> {
-                    logger.info(" ====> map -> found resource {}", resource.toString());
+                    logger.info(" found collection {}", resource.getNamespace());
+                    dropTargetCollectionIfRequired(targetClient, resource);
                     return new DocumentReader(sourceClient, resource);
                 })
                 .map(reader -> {
-                    logger.info(" ====> reader -> found resource {}", reader.getResource());
                     return new DocumentWriter(targetClient, reader);
                 })
                 .subscribe(writer -> {
@@ -101,9 +105,22 @@ public class DataMigrator {
                     logger.info(" ====> writer -> found resource {}", writer);
                     writer.blockingLast();
                 });
-                //TODO: BUG; looks like onNext is happening before the actual Ids are returned
+        
         sourceClient.close();
         targetClient.close();
+    }
+
+    private void dropTargetCollectionIfRequired(MongoClient targetClient, Resource resource) {
+        if (options.isDropTarget()) {
+
+            MongoDatabase database = targetClient.getDatabase(resource.getDatabase());
+            MongoCollection<Document> collection = database.getCollection(resource.getCollection());
+            collection.drop();
+
+            logger.info(" dropping collection {} on target {}",
+                    resource.getNamespace(),
+                    targetClient.getAddress().toString());
+        }
     }
 
     private MongoClient getMongoClient(String cluster) {
