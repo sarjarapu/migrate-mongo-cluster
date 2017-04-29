@@ -33,7 +33,8 @@ Below are the list of features that I thought of incorporating into the applicat
 - [x] Save the documents onto target server 
 - [x] Reactive Programming
 - [x] Buffered read / Bulk write 
-- [x] Multithreading
+- [x] Multithreading - Read full documents in a different thread
+- [x] Multithreading - Write full documents in a different thread
 - [ ] Oplog tail for each replicaSet 
 - [ ] Continuation from where we left off
 - [ ] Retry logic with delay

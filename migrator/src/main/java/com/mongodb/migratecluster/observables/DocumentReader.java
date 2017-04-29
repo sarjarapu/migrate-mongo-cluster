@@ -43,9 +43,6 @@ public class DocumentReader  extends Observable<List<ResourceDocument>> {
     protected void subscribeActual(Observer<? super List<ResourceDocument>> observer) {
         Observable<Object> observable = new DocumentIdReader(collection, resource);
         AtomicInteger docsCount = new AtomicInteger(0);
-        // TODO BUG: Why is this getting called twice ?
-        logger.warn("####### DocumentReader before buffering; docsCount: {}", docsCount);
-
         // TODO: java.lang.NullPointerException at io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)
         // have see this error when buffer size (1000) is larger than actual stream (100)
         // if I make the buffer size smaller than the actual stream then the NPE goes away
@@ -65,7 +62,6 @@ public class DocumentReader  extends Observable<List<ResourceDocument>> {
                 });
         // NOTE: by not blocking here, there is possibility of missing last set in the buffer
         observable.blockingLast();
-        // TODO BUG: Unless its done with the above code it should not come here . but this could be a bug
         observer.onComplete();
         logger.info("reader for resource: {} completed. total documents read: {}",
                 this.resource.getNamespace(),  docsCount);

@@ -51,14 +51,15 @@ public class DocumentWriter extends Observable<List<ResourceDocument>> {
                                 .subscribeOn(Schedulers.io())
                                 .map(rdocs -> {
                                     MongoCollection<Document> collection = getMongoCollection();
-                                    //MongoCollection<Document> collection = targetDatabase.getCollection(resource.getCollection());
-                                    String message = String.format(" ... writing to target. docs.size: %s", documents.size());
-                                    logger.info(message);
-
                                     List<Document> docs = rdocs.stream()
                                             .map(rd -> rd.getDocument())
                                             .collect(Collectors.toList());
                                     collection.insertMany(docs);
+
+                                    String message = String.format("Inserted %d documents into target collection: %s",
+                                            documents.size(), resource.getNamespace());
+                                    logger.info(message);
+
                                     observer.onNext(rdocs);
                                     return rdocs;
                                 });
