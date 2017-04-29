@@ -27,7 +27,8 @@ https://upday.github.io/blog/reactive_frustrations_1/
 http://vlkan.com/blog/post/2016/07/20/rxjava-backpressure/
 https://github.com/ReactiveX/RxJava/wiki/The-RxJava-Android-Module
 https://github.com/amitshekhariitbhu/RxJava2-Android-Samples/blob/master/app/src/main/java/com/rxjava2/android/samples/ui/operators/FlowableExampleActivity.java
-
+https://medium.com/@theMikhail/rxjava2-an-early-preview-5b05de46b07
+https://balamaci.github.io/rxjava-walkthrough/
 https://github.com/ReactiveX/RxJava/issues
 https://medium.com/jtribe/rxjava-2-0-what-im-looking-forward-to-d6aac6419a76
 https://blog.mindorks.com/migrating-from-rxjava1-to-rxjava2-5dac0a94b4aa

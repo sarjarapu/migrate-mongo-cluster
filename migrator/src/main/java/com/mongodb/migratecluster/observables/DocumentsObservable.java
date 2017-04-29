@@ -46,8 +46,9 @@ public class DocumentsObservable extends Observable<List<ResourceDocument>> {
         for (Document item : documents) {
             docs.add(item);
         }
-        String message = String.format(" ... reading from source. docs.size: %s", docs.size());
+        String message = String.format(" read %s full documents based on given _id's. ", docs.size());
         logger.info(message);
+
         List<ResourceDocument> resourceDocuments = docs.stream()
                 .map(d -> new ResourceDocument(this.resource, d))
                 .collect(Collectors.toList());
