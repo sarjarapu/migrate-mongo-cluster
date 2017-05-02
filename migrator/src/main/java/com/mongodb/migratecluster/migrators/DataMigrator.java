@@ -54,8 +54,14 @@ public class DataMigrator {
             throw new AppException(message);
         }
 
+        // start the oplog tailing
+
         // loop through source and copy to target
         readSourceClusterDatabases();
+
+        // when copying is all done, automode triggers replay
+        
+        // replay the oplog
     }
 
     private void readSourceClusterDatabases() throws AppException {
@@ -79,6 +85,7 @@ public class DataMigrator {
         }
         logger.info("Absolutely nothing should be here after this line");
     }
+
     private void readAndWriteResourceDocuments(MongoClient sourceClient, MongoClient targetClient) {
         // load the blacklist filters and create database and collection predicates
         List<ResourceFilter> blacklistFilter = options.getBlackListFilter();
@@ -97,14 +104,8 @@ public class DataMigrator {
                     dropTargetCollectionIfRequired(targetClient, resource);
                     return new DocumentReader(sourceClient, resource);
                 })
-                .map(reader -> {
-                    return new DocumentWriter(targetClient, reader);
-                })
-                .subscribe(writer -> {
-                    // block on the
-                    logger.info(" ====> writer -> found resource {}", writer);
-                    writer.blockingLast();
-                });
+                .map(reader -> new DocumentWriter(targetClient, reader))
+                .subscribe(writer -> writer.blockingLast());
         
         sourceClient.close();
         targetClient.close();

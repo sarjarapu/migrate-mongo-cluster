@@ -38,7 +38,8 @@ public class DocumentIdReader extends Observable<Object> {
         for (Document item : documents) {
             if (!item.isEmpty()) {
                 // TODO: Turn on the throttling here
-                logger.debug("reading _id 1 by 1; found _id: {}", item.get("_id"));
+                String message = String.format("reading _id 1 by 1; found _id: {}", item.get("_id"));
+                logger.debug(message);
                 observer.onNext(item.get("_id"));
             }
         }

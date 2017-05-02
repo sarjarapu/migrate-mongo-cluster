@@ -15,6 +15,16 @@ rinse and repeat
 
 Useful links
 ====================
+https://github.com/JaiHirsch/mongo-tail/blob/master/mongo-tail/src/main/java/org/mongo/runner/OplogTail.java
+http://jaihirsch.github.io/straw-in-a-haystack/mongodb/2014/08/18/mongo-oplog-tailing/
+
+
+# custom flowable 
+https://github.com/ReactiveX/RxJava/issues/5275
+
+https://github.com/reverb/wordnik-oss/tree/master/modules/mongo-admin-utils/src/main/java/com/wordnik/system/mongodbhttps://github.com/reverb/wordnik-oss/tree/master/modules/mongo-admin-utils/src/main/java/com/wordnik/system/mongodb
+http://www.programcreek.com/java-api-examples/index.php?api=com.mongodb.Bytes
+
 https://praveer09.github.io/technology/2016/02/21/rxjava-part-2-creating-an-observable/
 http://tomstechnicalblog.blogspot.ca/2015/11/rxjava-achieving-parallelization.html
 http://jaihirsch.github.io/straw-in-a-haystack/mongodb/2014/08/18/mongo-oplog-tailing/

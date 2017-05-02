@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Date: 4/26/17 4:48 AM
  * Description:
  */
-public class DocumentReader  extends Observable<List<ResourceDocument>> {
+public class DocumentReader extends Observable<List<ResourceDocument>> {
     final static Logger logger = LoggerFactory.getLogger(DocumentReader.class);
     private final Resource resource;
     private  MongoCollection<Document> collection;
