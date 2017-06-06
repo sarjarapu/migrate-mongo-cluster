@@ -28,7 +28,7 @@ public class InputArgsParser {
             options.addOption("c", "config", true,"configuration file for migration");
             options.addOption("s", "source", true,"source cluster connection string");
             options.addOption("t", "target", true,"target cluster connection string");
-            options.addOption("o", "oplog", true,"oplog store connection string");
+            options.addOption("o", "oplog", false,"oplogStore connection string. only required if oplog headroom is small");
             options.addOption("d", "drop", false,"drop target collections before copying");
 
             areOptionsSet = true;

@@ -11,6 +11,8 @@ public class AppException extends Exception {
         super(message);
     }
 
+    // https://github.com/tmc/mongologtools
+    // https://github.com/ParsePlatform/logtailer
     public AppException(String message, Exception e) {
         super(message, e);
     }

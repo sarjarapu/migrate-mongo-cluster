@@ -15,11 +15,14 @@ mkdir source-cluster target-cluster oplog-store
 
 # create source cluster 
 cd source-cluster
-mlaunch init --port 18000 --replicaset --nodes 3 --shards 3 --csrs 
+# mlaunch init --port 18000 --replicaset --nodes 3 --shards 3 --csrs
+mlaunch --port 18000 --replicaset --nodes 3
+
 
 # create target cluster 
 cd ../target-cluster
-mlaunch init --port 18100 --replicaset --nodes 3 --shards 3 --csrs 
+# mlaunch init --port 18100 --replicaset --nodes 3 --shards 3 --csrs
+mlaunch init --port 18100 --replicaset --nodes 3
 
 # create oplog replicaset 
 cd ../oplog-store

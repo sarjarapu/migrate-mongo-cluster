@@ -24,7 +24,8 @@ mongo --port 18000 <<EOF
   db.user.insertMany(users);
   db.user.createIndex({name: 1})
 
-  for(var i=1; i <= 100000; i++) {
+ // 100000
+  for(var i=0; i < 100000; i++) {
     db.people.insert({
       fname: 'fname'+i, 
       lname: 'lname'+i, 

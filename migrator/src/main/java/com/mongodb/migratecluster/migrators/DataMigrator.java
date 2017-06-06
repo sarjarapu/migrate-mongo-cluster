@@ -1,17 +1,13 @@
 package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
-import com.mongodb.migratecluster.observables.CollectionFlowable;
-import com.mongodb.migratecluster.observables.DatabaseFlowable;
-import com.mongodb.migratecluster.observables.DocumentReader;
-import com.mongodb.migratecluster.observables.DocumentWriter;
+import com.mongodb.migratecluster.observables.*;
 import com.mongodb.migratecluster.predicates.CollectionFilterPredicate;
 import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
 import org.bson.Document;
@@ -29,24 +25,18 @@ import java.util.concurrent.TimeUnit;
  * Date: 4/13/17 11:45 PM
  * Description:
  */
-public class DataMigrator {
+public class DataMigrator extends BaseMigrator {
     final static Logger logger = LoggerFactory.getLogger(DataMigrator.class);
-    private ApplicationOptions options;
+
+    private final OplogMigrator oplogMigrator;
 
     public DataMigrator(ApplicationOptions options) {
-        this.options = options;
+        super(options);
+
+        this.oplogMigrator = new OplogMigrator(options);
     }
 
-    private boolean isValidOptions() {
-        // option values for source, target, oplog must not be blank
-        if ((this.options.getSourceCluster().equals("")) ||
-            (this.options.getTargetCluster().equals("")) ||
-            (this.options.getOplogStore().equals(""))) {
-            return false;
-        }
-        return true;
-    }
-
+    @Override
     public void process() throws AppException {
         // check if the options are valid
         if (!this.isValidOptions()) {
@@ -55,12 +45,17 @@ public class DataMigrator {
         }
 
         // start the oplog tailing
+        // at the individual shards level. so identify if the
+        // source is cluster or individual shard .
+        // if shard tail local.oplog.rs, else for each shard
+        // repeat the same
+
+        this.oplogMigrator.process();
 
         // loop through source and copy to target
-        readSourceClusterDatabases();
+        // readSourceClusterDatabases();
 
-        // when copying is all done, automode triggers replay
-        
+        // when copying is all done, auto mode triggers replay
         // replay the oplog
     }
 
@@ -124,17 +119,4 @@ public class DataMigrator {
         }
     }
 
-    private MongoClient getMongoClient(String cluster) {
-        String connectionString = String.format("mongodb://%s", cluster);
-        MongoClientURI uri = new MongoClientURI(connectionString);
-        return new MongoClient(uri);
-    }
-
-    private MongoClient getSourceMongoClient() {
-        return getMongoClient(this.options.getSourceCluster());
-    }
-
-    private MongoClient getTargetMongoClient() {
-        return getMongoClient(this.options.getTargetCluster());
-    }
 }
