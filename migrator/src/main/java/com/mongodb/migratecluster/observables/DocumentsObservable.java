@@ -41,7 +41,7 @@ public class DocumentsObservable extends Observable<List<ResourceDocument>> {
         List<Document> documents = getDocumentsFromDB();
         List<ResourceDocument> resourceDocuments = createResourceDocumentsFrom(documents);
 
-        String message = String.format(" read %s full documents based on given _id's. ", documents.size());
+        String message = String.format("read %s full documents based on given _id's. ", documents.size());
         logger.info(message);
 
         observer.onNext(resourceDocuments);

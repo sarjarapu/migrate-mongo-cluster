@@ -41,7 +41,7 @@ public class CollectionFlowable extends Observable<Resource> {
         while(iterator.hasNext()) {
             Document item = iterator.next();
             if (!item.isEmpty()) {
-                //logger.info(" ... found collection: {}.{}", database.getName(), item.getString("name"));
+                //logger.info("... found collection: {}.{}", database.getName(), item.getString("name"));
                 //logger.debug(item.toJson());
                 Resource resource = new Resource(databaseName,
                         item.getString("name"),

@@ -1,4 +1,4 @@
-package com.mongodb.migratecluster.migrators;
+package com.mongodb.migratecluster.oplog;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -6,15 +6,14 @@ import com.mongodb.client.MongoCursor;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
-import com.mongodb.migratecluster.observables.OplogReader;
-import com.mongodb.migratecluster.observables.OplogWriter;
+import com.mongodb.migratecluster.migrators.BaseMigrator;
+import io.reactivex.schedulers.Schedulers;
 import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
 
 /**
  * File: OplogMigrator
@@ -26,6 +25,8 @@ public class OplogMigrator extends BaseMigrator {
     final static Logger logger = LoggerFactory.getLogger(OplogMigrator.class);
     private String sourceMigratorName;
 
+    private OplogGapWatcher oplogGapWatcher;
+
     public OplogMigrator(ApplicationOptions options) {
         super(options);
         // TODO: assuming that source is always replicaSet here
@@ -34,14 +35,10 @@ public class OplogMigrator extends BaseMigrator {
 
     @Override
     public void process() throws AppException {
-        // verify isValid
-        // load sourceAndTargetClients
-
-        // TODO: Thoughts, may be show a stream of net diff from source / target oplogTimestamp
-
         BsonTimestamp timestamp = getTargetLatestOplogTimestamp();
 
-        logger.info(" found the latest oplog entry with timestamp: {}", timestamp);
+        logger.info("found the latest oplog entry with timestamp: {}", timestamp);
+        ((Runnable) () -> createGapWatcher()).run();
         this.readSourceAndWriteTarget(timestamp);
     }
 
@@ -50,11 +47,24 @@ public class OplogMigrator extends BaseMigrator {
         MongoClient sourceClient = getSourceMongoClient();
         MongoClient targetClient = getTargetMongoClient();
         MongoClient oplogStoreClient = getOplogStoreMongoClient();
-
         OplogReader reader = new OplogReader(sourceClient, lastTimestamp);
         OplogWriter writer = new OplogWriter(targetClient, oplogStoreClient, this.sourceMigratorName);
 
-        reader.subscribe(op -> writer.applyOperation(op));
+        reader.subscribe(op -> {
+            writer.applyOperation(op);
+        });
+    }
+
+    private void createGapWatcher() {
+        MongoClient sourceClient = getSourceMongoClient();
+        MongoClient oplogStoreClient = getOplogStoreMongoClient();
+
+        oplogGapWatcher = new OplogGapWatcher(sourceClient, oplogStoreClient, this.sourceMigratorName);
+        oplogGapWatcher
+                .subscribeOn(Schedulers.newThread())
+                .subscribe(gap -> {
+                    logger.info(gap.toString());
+                });
     }
 
     private BsonTimestamp getTargetLatestOplogTimestamp() {

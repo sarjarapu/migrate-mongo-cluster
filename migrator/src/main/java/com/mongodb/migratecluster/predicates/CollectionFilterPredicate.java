@@ -25,7 +25,7 @@ public class CollectionFilterPredicate extends BaseResourcePredicate implements 
     public boolean test(Resource resource) throws Exception {
         boolean blacklisted = isResourceInBlackList(resource);
         if (blacklisted) {
-            logger.info(" Skipping collection: {}; As it is marked as black listed in configuration", resource.getNamespace());
+            logger.info("Skipping collection: {}; As it is marked as black listed in configuration", resource.getNamespace());
         }
         return !blacklisted;
     }

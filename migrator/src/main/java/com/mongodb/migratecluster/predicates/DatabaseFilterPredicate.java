@@ -26,7 +26,7 @@ public class DatabaseFilterPredicate extends BaseResourcePredicate implements Pr
         String databaseName = dbDocument.getString("name");
         boolean blacklisted = isDatabaseInBlackList(databaseName);
         if (blacklisted) {
-            logger.info(" Skipping database: {}; As it is marked as black listed in configuration", databaseName);
+            logger.info("Skipping database: {}; As it is marked as black listed in configuration", databaseName);
         }
         return !blacklisted;
     }

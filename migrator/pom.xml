@@ -56,6 +56,11 @@
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.jcabi</groupId>
+            <artifactId>jcabi-log</artifactId>
+            <version>0.17.1</version>
+        </dependency>
     </dependencies>
     <build>
         <resources>

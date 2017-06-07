@@ -8,6 +8,7 @@ import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
 import com.mongodb.migratecluster.observables.*;
+import com.mongodb.migratecluster.oplog.OplogMigrator;
 import com.mongodb.migratecluster.predicates.CollectionFilterPredicate;
 import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
 import org.bson.Document;
@@ -65,13 +66,13 @@ public class DataMigrator extends BaseMigrator {
 
         try {
             Date startDateTime = new Date();
-            logger.info(" started processing at {}", startDateTime);
+            logger.info("started processing at {}", startDateTime);
 
             readAndWriteResourceDocuments(sourceClient, targetClient);
 
             Date endDateTime = new Date();
-            logger.info(" completed processing at {}", endDateTime);
-            logger.info(" total time to process is {}", TimeUnit.SECONDS.convert(endDateTime.getTime() - startDateTime.getTime(), TimeUnit.MILLISECONDS));
+            logger.info("completed processing at {}", endDateTime);
+            logger.info("total time to process is {}", TimeUnit.SECONDS.convert(endDateTime.getTime() - startDateTime.getTime(), TimeUnit.MILLISECONDS));
 
         } catch (Exception e) {
             String message = "error in while processing server migration.";
@@ -90,12 +91,12 @@ public class DataMigrator extends BaseMigrator {
         new DatabaseFlowable(sourceClient)
                 .filter(databasePredicate)
                 .flatMap(db -> {
-                    logger.info(" found database: {}", db.getString("name"));
+                    logger.info("found database: {}", db.getString("name"));
                     return new CollectionFlowable(sourceClient, db.getString("name"));
                 })
                 .filter(collectionPredicate)
                 .map(resource -> {
-                    logger.info(" found collection {}", resource.getNamespace());
+                    logger.info("found collection {}", resource.getNamespace());
                     dropTargetCollectionIfRequired(targetClient, resource);
                     return new DocumentReader(sourceClient, resource);
                 })
@@ -113,7 +114,7 @@ public class DataMigrator extends BaseMigrator {
             MongoCollection<Document> collection = database.getCollection(resource.getCollection());
             collection.drop();
 
-            logger.info(" dropping collection {} on target {}",
+            logger.info("dropping collection {} on target {}",
                     resource.getNamespace(),
                     targetClient.getAddress().toString());
         }

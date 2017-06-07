@@ -35,7 +35,7 @@ public class DatabaseFlowable extends Observable<Document> {
         while(iterator.hasNext()) {
             Document item = iterator.next();
             if (!item.isEmpty()) {
-                String message = String.format(" found database name: %s, sizeOnDisk: %s",
+                String message = String.format("found database name: %s, sizeOnDisk: %s",
                         item.getString("name"), item.get("sizeOnDisk"));
                 //logger.info(message);
                 //logger.debug(item.toJson());

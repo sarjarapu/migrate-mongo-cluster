@@ -1,4 +1,4 @@
-package com.mongodb.migratecluster.observables;
+package com.mongodb.migratecluster.oplog;
 
 import com.mongodb.CursorType;
 import com.mongodb.MongoClient;

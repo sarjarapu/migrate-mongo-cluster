@@ -30,6 +30,7 @@ usage: migratecluster [-c <arg>] [-d] [-h] [-o <arg>] [-s <arg>] [-t <arg>]
  -o,--oplog <arg>    oplog store connection string  
  -s,--source <arg>   source cluster connection string  
  -t,--target <arg>   target cluster connection string  
+ -m,--mode <arg>     migration mode. Supported modes: oplogOnly
 
 
 ## Run the application using sample migration
@@ -46,11 +47,13 @@ Below are the list of features that I thought of incorporating into the applicat
 - [x] Multithreading - Read full documents in a different thread
 - [x] Multithreading - Write full documents in a different thread
 - [x] Drop database / collection before inserting
-- [ ] Oplog tail for each replicaSet 
-- [ ] Continuation from where we left off
-- [ ] Retry logic with delay
-- [ ] Error handling, duplicate key, etc
-- [ ] Status Database to keep track of progress 
-- [ ] API to expose status of migrators from database 
+- [x] Oplog tail for each replicaSet 
+- [x] Continuation from where we left off
+- [x] Error handling, duplicate key, etc
+- [x] Use connection string with all the members in replicaset
+- [x] Retry logic when the primary is down
+- [ ] Read preference - secondary from source?
+- [ ] Status Database to keep track of progress
+- [ ] API to expose status of migrators from database
 
 
