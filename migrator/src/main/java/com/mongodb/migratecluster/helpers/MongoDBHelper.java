@@ -31,7 +31,15 @@ public  class MongoDBHelper {
         return collection;
     }
 
-    public static <T> T performMongoOperationWithRetry(Supplier<T> operationFunc, Document operation) throws AppException {
+    public static MongoCollection<Document> getCollectionByNamespace(MongoClient client, String ns) {
+        String[] parts = ns.split("\\.");
+        String databaseName = parts[0];
+        String collectionName = ns.substring(databaseName.length()+1);
+
+        return MongoDBHelper.getCollection(client, databaseName, collectionName);
+    }
+
+    public static <T> T performOperationWithRetry(Supplier<T> operationFunc, Document operation) throws AppException {
         for(int retry = 0; retry <= 1; retry++) {
             try{
                 return operationFunc.get();

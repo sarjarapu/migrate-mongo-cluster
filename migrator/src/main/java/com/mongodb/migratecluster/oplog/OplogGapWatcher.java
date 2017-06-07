@@ -8,7 +8,6 @@ import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.migrators.DataMigrator;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
-import io.reactivex.Scheduler;
 import io.reactivex.schedulers.Schedulers;
 import org.bson.BsonTimestamp;
 import org.bson.Document;
@@ -83,7 +82,7 @@ public class OplogGapWatcher  extends Observable<OplogGap> {
         MongoCollection<Document> collection = MongoDBHelper.getCollection(
                 client, databaseName, collectionName);
 
-        BsonTimestamp timestamp = MongoDBHelper.performMongoOperationWithRetry(() -> {
+        BsonTimestamp timestamp = MongoDBHelper.performOperationWithRetry(() -> {
             BsonTimestamp ts = null;
             MongoCursor<Document> cursor =
                 collection

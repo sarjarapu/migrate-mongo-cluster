@@ -56,6 +56,7 @@ public class OplogWriter {
                     break;
                 case "c":
                     // create table indexes etc operations
+                    logger.warn(String.format("unsupported operation %s", operation.getString("op")));
                     break;
                 default:
                     throw new AppException(String.format("unsupported operation %s", operation.getString("op")));
@@ -66,9 +67,8 @@ public class OplogWriter {
         Document document = operation.get("o", Document.class);
         String ns = operation.getString("ns");
 
-        MongoCollection<Document> collection = this.getCollectionByNamespace(ns);
-
-        MongoDBHelper.performMongoOperationWithRetry(() -> {
+        MongoCollection<Document> collection = MongoDBHelper.getCollectionByNamespace(this.targetClient, ns);
+        MongoDBHelper.performOperationWithRetry(() -> {
             collection.insertOne(document);
             return 1L;
         }, operation);
@@ -83,8 +83,8 @@ public class OplogWriter {
         String ns = operation.getString("ns");
 
         // what about the options?
-        MongoCollection<Document> collection = this.getCollectionByNamespace(ns);
-        MongoDBHelper.performMongoOperationWithRetry(() -> {
+        MongoCollection<Document> collection = MongoDBHelper.getCollectionByNamespace(this.targetClient, ns);
+        MongoDBHelper.performOperationWithRetry(() -> {
             UpdateResult result = collection.updateOne(find, update);
             return result.getModifiedCount();
         }, operation);
@@ -98,8 +98,8 @@ public class OplogWriter {
         String ns = operation.getString("ns");
 
         // what about the options?
-        MongoCollection<Document> collection = this.getCollectionByNamespace(ns);
-        MongoDBHelper.performMongoOperationWithRetry(() -> {
+        MongoCollection<Document> collection = MongoDBHelper.getCollectionByNamespace(this.targetClient, ns);
+        MongoDBHelper.performOperationWithRetry(() -> {
             DeleteResult result = collection.deleteOne(find);
             return result.getDeletedCount();
         }, operation);
@@ -113,25 +113,16 @@ public class OplogWriter {
         Document find = new Document("reader", this.name);
         BsonTimestamp timestamp = operation.get("ts", BsonTimestamp.class);
         Document update = new Document("$set", new Document("ts", timestamp));
-
         UpdateOptions options = new UpdateOptions().upsert(true);
 
         MongoCollection<Document> collection = MongoDBHelper.getCollection(oplogStoreClient,
                 "migrate-mongo", "oplog.tracker");
-        MongoDBHelper.performMongoOperationWithRetry(() -> {
+        MongoDBHelper.performOperationWithRetry(() -> {
             UpdateResult result = collection.updateOne(find, update, options);
             return result.getModifiedCount();
         }, operation);
 
         String message = String.format("updating the oplogStore> migrate-mongo.oplog.tracker with op.ts: %s", timestamp);
         logger.debug(message);
-    }
-
-    private MongoCollection<Document> getCollectionByNamespace(String ns) {
-        String[] parts = ns.split("\\.");
-        String databaseName = parts[0];
-        String collectionName = ns.substring(databaseName.length()+1);
-
-        return MongoDBHelper.getCollection(this.targetClient, databaseName, collectionName);
     }
 }

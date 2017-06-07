@@ -50,16 +50,14 @@ public class OplogReader extends Observable<Document> {
     }
 
     private Document getFindQuery() {
-        // TODO: just reads one time but doesn't till to the end
-        Document noopFilter = new Document("op", new Document("$ne", "n"));
+        Document noOpFilter = new Document("op", new Document("$ne", "n"));
         if (lastTimeStamp == null) {
-            return noopFilter;
+            return noOpFilter;
         }
         else{
-            List<Document> filters = new ArrayList<>();
-            filters.add(noopFilter);
-
             Document timestampFilter = new Document("ts", new Document("$gt", lastTimeStamp));
+            List<Document> filters = new ArrayList<>();
+            filters.add(noOpFilter);
             filters.add(timestampFilter);
 
             return new Document("$and", filters);
