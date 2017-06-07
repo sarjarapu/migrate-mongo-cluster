@@ -33,9 +33,9 @@ public class OplogGap {
 
     @Override
     public String toString() {
-        return String.format("Target is behind by %d seconds; Source: %s, Target: %s",
+        return String.format("Target is behind by %d seconds; Target: %s, Source: %s",
                 this.getGapInSeconds(),
-                this.getSourceOpTime(),
-                this.getTargetOpTime());
+                this.getTargetOpTime(),
+                this.getSourceOpTime());
     }
 }
