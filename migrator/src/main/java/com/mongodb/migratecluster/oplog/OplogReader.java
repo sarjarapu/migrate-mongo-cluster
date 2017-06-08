@@ -2,6 +2,7 @@ package com.mongodb.migratecluster.oplog;
 
 import com.mongodb.CursorType;
 import com.mongodb.MongoClient;
+import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
@@ -26,6 +27,8 @@ public class OplogReader extends Observable<Document> {
     public OplogReader(MongoClient client, BsonTimestamp lastTimeStamp) {
         this.client = client;
         this.lastTimeStamp = lastTimeStamp;
+
+        this.client.setReadPreference(ReadPreference.secondaryPreferred());
     }
 
     @Override
