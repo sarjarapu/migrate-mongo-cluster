@@ -52,7 +52,7 @@ Below are the list of features that I thought of incorporating into the applicat
 - [x] Error handling, duplicate key, etc
 - [x] Use connection string with all the members in replicaset
 - [x] Retry logic when the primary is down
-- [ ] Read preference - secondary from source?
+- [x] Read preference - secondary from source?
 - [ ] Status Database to keep track of progress
 - [ ] API to expose status of migrators from database
 

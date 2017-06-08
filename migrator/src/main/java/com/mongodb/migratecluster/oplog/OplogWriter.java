@@ -41,6 +41,7 @@ public class OplogWriter {
     }
 
     private void identifyAndPerformOperation(Document operation) throws AppException {
+        String message;
         switch (operation.getString("op")){
                 case "i":
                     performInsert(operation);
@@ -56,10 +57,13 @@ public class OplogWriter {
                     break;
                 case "c":
                     // create table indexes etc operations
-                    logger.warn(String.format("unsupported operation %s", operation.getString("op")));
+                    message = String.format("unsupported operation %s; op: %s", operation.getString("op"), operation.toJson());
+                    logger.warn(message);
                     break;
                 default:
-                    throw new AppException(String.format("unsupported operation %s", operation.getString("op")));
+                    message = String.format("unsupported operation %s; op: %s", operation.getString("op"), operation.toJson());
+                    logger.error(message);
+                    throw new AppException(message);
             }
     }
 

@@ -33,8 +33,12 @@ public class OplogGap {
 
     @Override
     public String toString() {
-        return String.format("Target is behind by %d seconds; Target: %s, Source: %s",
-                this.getGapInSeconds(),
+        long gapInSeconds = this.getGapInSeconds();
+        int gapByOperations = (gapInSeconds > 0)
+                ? 0
+                : (sourceOpTime.getInc() - targetOpTime.getInc());
+        return String.format("Target is behind by %d seconds & %04d operations; Target: %s, Source: %s",
+                gapInSeconds, gapByOperations,
                 this.getTargetOpTime(),
                 this.getSourceOpTime());
     }
