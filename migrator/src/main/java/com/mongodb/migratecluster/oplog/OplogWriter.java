@@ -2,6 +2,7 @@ package com.mongodb.migratecluster.oplog;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
@@ -24,7 +25,7 @@ public class OplogWriter {
     private final MongoClient targetClient;
     private final String name;
 
-    final static Logger logger = LoggerFactory.getLogger(DataMigrator.class);
+    final static Logger logger = LoggerFactory.getLogger(OplogWriter.class);
 
     public OplogWriter(MongoClient targetClient, MongoClient oplogStoreClient, String name) {
         this.targetClient = targetClient;
@@ -52,13 +53,11 @@ public class OplogWriter {
                 case "d":
                     performDelete(operation);
                     break;
+                case "c":
+                    performRunCommand(operation);
+                    break;
                 case "n":
                     // no op; do nothing, just eat it
-                    break;
-                case "c":
-                    // create table indexes etc operations
-                    message = String.format("unsupported operation %s; op: %s", operation.getString("op"), operation.toJson());
-                    logger.warn(message);
                     break;
                 default:
                     message = String.format("unsupported operation %s; op: %s", operation.getString("op"), operation.toJson());
@@ -109,6 +108,21 @@ public class OplogWriter {
         }, operation);
 
         String message = String.format("completed delete op on namespace: %s; document: %s", ns, operation.toJson());
+        logger.debug(message);
+    }
+
+
+    private void performRunCommand(Document operation) throws AppException {
+        Document document = operation.get("o", Document.class);
+        String databaseName = operation.getString("ns").replace(".$cmd", "");
+
+        MongoDatabase database = MongoDBHelper.getDatabase(this.targetClient, databaseName);
+        MongoDBHelper.performOperationWithRetry(() -> {
+            database.runCommand(document);
+            return 1L;
+        }, operation);
+
+        String message = String.format("completed runCommand op on database: %s; document: %s", databaseName, operation.toJson());
         logger.debug(message);
     }
 

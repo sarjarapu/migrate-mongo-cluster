@@ -31,7 +31,7 @@ public class OplogGapWatcher  extends Observable<OplogGap> {
     private final MongoClient sourceClient;
     private final String name;
 
-    final static Logger logger = LoggerFactory.getLogger(DataMigrator.class);
+    final static Logger logger = LoggerFactory.getLogger(OplogGapWatcher.class);
 
     public OplogGapWatcher(MongoClient sourceClient, MongoClient oplogStoreClient, String name) {
         this.sourceClient = sourceClient;

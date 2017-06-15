@@ -1,4 +1,4 @@
-mongo --port 18002 <<EOF
+mongo --port 18000 <<EOF
   use social
   db.dropDatabase()
 

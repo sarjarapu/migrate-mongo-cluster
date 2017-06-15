@@ -1,6 +1,8 @@
 package com.mongodb.migratecluster.oplog;
 
 import org.bson.BsonTimestamp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * File: OplogGap
@@ -12,8 +14,13 @@ public class OplogGap {
     private BsonTimestamp sourceOpTime;
     private BsonTimestamp targetOpTime;
 
+    final static Logger logger = LoggerFactory.getLogger(OplogGap.class);
+
     public OplogGap(BsonTimestamp sourceTimestamp, BsonTimestamp targetTimestamp) {
-        this.sourceOpTime = sourceTimestamp;
+        this.sourceOpTime = (sourceTimestamp == null)
+                ? new BsonTimestamp(0,0)
+                : sourceTimestamp;
+
         this.targetOpTime = (targetTimestamp == null)
                 ? new BsonTimestamp(0,0)
                 : targetTimestamp;
@@ -28,6 +35,7 @@ public class OplogGap {
     }
 
     public long getGapInSeconds() {
+        logger.debug("[NULL ERROR] hoping to see null here; sourceOpTime: {}; targetOpTime: {}", sourceOpTime, targetOpTime);
         return sourceOpTime.getTime() - targetOpTime.getTime();
     }
 
