@@ -52,7 +52,7 @@ public  class MongoDBHelper {
             }
             catch (MongoWriteException we) {
                 if (we.getMessage().startsWith("E11000 duplicate key error collection")) {
-                    logger.warn("[IGNORE] Duplicate key exception while performing operation: {}; error: {}",
+                    logger.warn("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
                             operation.toJson(), we.toString());
                     return null;
                 }
