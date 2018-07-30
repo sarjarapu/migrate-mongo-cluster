@@ -51,13 +51,15 @@ usage: migratecluster [-c <arg>] [-d] [-h] [-o <arg>] [-s <arg>] [-t <arg>]
 ## Run the application using sample migration
 
 ```bash
-java -jar target/migrate-mongo-cluster-1.0-SNAPSHOT-jar-with-dependencies.jar -c ../sample/sample-migration.conf```
+java -jar target/migrate-mongo-cluster-1.0-SNAPSHOT-jar-with-dependencies.jar -c ../sample/sample-migration.conf
+```
 
 # Features to be build into program
+
 Below are the list of features that I thought of incorporating into the application.
 
 - [x] Get databases, collections and docs
-- [x] Save the documents onto target server 
+- [x] Save the documents onto target server
 - [x] Reactive Programming
 - [x] Buffered read / Bulk write 
 - [x] Multithreading - Read full documents in a different thread
