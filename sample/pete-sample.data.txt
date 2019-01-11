@@ -1,0 +1,9 @@
+var a,d;
+for (a=1; a < 2100; a++) {
+    var batch = []
+    for (d=1; d <= a; d++) {
+        var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-11T03:00:00Z"), somedata: "Junk" };
+        batch.push(item);
+    }
+    db.deviceState.insertMany(batch);
+}

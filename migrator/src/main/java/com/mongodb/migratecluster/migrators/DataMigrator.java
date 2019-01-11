@@ -51,10 +51,10 @@ public class DataMigrator extends BaseMigrator {
         // if shard tail local.oplog.rs, else for each shard
         // repeat the same
 
-        this.oplogMigrator.process();
+        //this.oplogMigrator.process();
 
         // loop through source and copy to target
-        // readSourceClusterDatabases();
+        readSourceClusterDatabases();
 
         // when copying is all done, auto mode triggers replay
         // replay the oplog

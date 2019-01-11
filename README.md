@@ -73,5 +73,5 @@ Below are the list of features that I thought of incorporating into the applicat
 - [x] Read preference - secondary from source?
 - [ ] Status Database to keep track of progress
 - [ ] API to expose status of migrators from database
-
+- [ ] Runtime injection of the log level
 

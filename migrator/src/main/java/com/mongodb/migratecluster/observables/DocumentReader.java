@@ -30,12 +30,6 @@ public class DocumentReader extends Observable<List<ResourceDocument>> {
         this.collection = client.getDatabase(resource.getDatabase()).getCollection(resource.getCollection());
     }
 
-    // TODO: Remove this code
-    public DocumentReader(MongoCollection<Document> collection, Resource resource) {
-        this.collection = collection;
-        this.resource = resource;
-    }
-
     @Override
     protected void subscribeActual(Observer<? super List<ResourceDocument>> observer) {
         Observable<Object> observable = new DocumentIdReader(collection, resource);
