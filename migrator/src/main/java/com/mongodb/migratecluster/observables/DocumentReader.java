@@ -19,6 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Author: shyam.arjarapu
  * Date: 4/26/17 4:48 AM
  * Description:
+ * this class helps you read full documents in batches
+ * and publish them for any subscribers to listen.
  */
 public class DocumentReader extends Observable<List<ResourceDocument>> {
     final static Logger logger = LoggerFactory.getLogger(DocumentReader.class);
@@ -35,11 +37,17 @@ public class DocumentReader extends Observable<List<ResourceDocument>> {
         Observable<Object> observable = new DocumentIdReader(collection, resource);
         AtomicInteger docsCount = new AtomicInteger(0);
 
+        // TODO: load where you left off
+
+        // fetch the ids and do bulk read of 1000 docs at a time
         observable
                 .buffer(1000)
                 .flatMap(new Function<List<Object>, Observable<List<ResourceDocument>>>() {
                     @Override
                     public Observable<List<ResourceDocument>> apply(List<Object> ids) throws Exception {
+                        // NOTE: if last known insert _id is not null then you could check for _id in _ids
+                        // when found continue to process from there
+
                         return new DocumentsObservable(collection, getResource(), ids.toArray())
                                 .subscribeOn(Schedulers.io());
                     }

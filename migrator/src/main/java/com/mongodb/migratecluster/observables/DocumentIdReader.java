@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
  * Author: shyam.arjarapu
  * Date: 4/28/17 6:29 AM
  * Description:
+ * this class helps you fetch _ids of given collection in natural order.
+ * the fetched _ids are published in bulk for a reader to read the whole document
  */
 public class DocumentIdReader extends Observable<Object> {
     private final static Logger logger = LoggerFactory.getLogger(DocumentIdReader.class);
@@ -37,7 +39,7 @@ public class DocumentIdReader extends Observable<Object> {
 
         for (Document item : documents) {
             if (!item.isEmpty()) {
-                // TODO: Turn on the throttling here and read them in bulk
+                // TODO: Turn on the throttling here
                 String message = String.format("reading document by _id: [%s]", item.get("_id").toString());
                 logger.debug(message);
                 observer.onNext(item.get("_id"));

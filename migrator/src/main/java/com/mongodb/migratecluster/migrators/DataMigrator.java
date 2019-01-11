@@ -45,19 +45,22 @@ public class DataMigrator extends BaseMigrator {
             throw new AppException(message);
         }
 
-        // start the oplog tailing
-        // at the individual shards level. so identify if the
-        // source is cluster or individual shard .
-        // if shard tail local.oplog.rs, else for each shard
-        // repeat the same
+        // before you begin the copy make a note of oplog entry
+        // if oplog entry already exists do nothing
+        // start copying all the data from source to target
+        // only after completing the copy, you should begin oplog apply
 
-        //this.oplogMigrator.process();
+        // if copy failed in between, use of drop option starts all over again
+
+        // start the oplog tailing
+        // this.oplogMigrator.process();
 
         // loop through source and copy to target
+        // NOTE: running the copy without oplog migrator ran correctly.
+        // but with oplog migrator it seems to not fully complete
         readSourceClusterDatabases();
 
-        // when copying is all done, auto mode triggers replay
-        // replay the oplog
+        // TODO: when copying is all done, auto replay oplog
     }
 
     private void readSourceClusterDatabases() throws AppException {

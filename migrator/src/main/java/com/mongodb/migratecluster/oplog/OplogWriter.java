@@ -111,7 +111,6 @@ public class OplogWriter {
         logger.debug(message);
     }
 
-
     private void performRunCommand(Document operation) throws AppException {
         Document document = operation.get("o", Document.class);
         String databaseName = operation.getString("ns").replace(".$cmd", "");
@@ -140,7 +139,7 @@ public class OplogWriter {
             return result.getModifiedCount();
         }, operation);
 
-        String message = String.format("updating the oplogStore> migrate-mongo.oplog.tracker with op.ts: %s", timestamp);
+        String message = String.format("updating the oplogStore > migrate-mongo.oplog.tracker with op.ts: [%s]", timestamp);
         logger.debug(message);
     }
 }

@@ -29,15 +29,19 @@ public class OplogMigrator extends BaseMigrator {
 
     public OplogMigrator(ApplicationOptions options) {
         super(options);
-        // TODO: assuming that source is always replicaSet here
+        // NOTE: assuming that source is always replicaSet here
         this.sourceMigratorName = options.getSourceCluster();
     }
 
     @Override
     public void process() throws AppException {
         BsonTimestamp timestamp = getTargetLatestOplogTimestamp();
-
-        logger.info("found the latest oplog entry with timestamp: {}", timestamp);
+        if (timestamp == null) {
+            logger.info("no oplog entry is found for the shard: [{}]", sourceMigratorName);
+        }
+        else {
+            logger.info("found the latest oplog entry for shard: [{}] with timestamp: [{}]", sourceMigratorName, timestamp);
+        }
         ((Runnable) () -> createGapWatcher()).run();
         this.readSourceAndWriteTarget(timestamp);
     }

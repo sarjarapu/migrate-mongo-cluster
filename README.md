@@ -74,4 +74,9 @@ Below are the list of features that I thought of incorporating into the applicat
 - [ ] Status Database to keep track of progress
 - [ ] API to expose status of migrators from database
 - [ ] Runtime injection of the log level
+- [ ] While copying find the id and continue where you left off
 
+
+## Random notes
+
+-  I think oplog tail should make entry if not already exists and start saving tail to oplog tail db this will help in scenarios when source oplog headroom is small compared to time it takes to populate all the historical data. for simplicity i assume oplog is big enough for multiple days if an oplog entry already exists then wait till all the copy process is done begin the oplog tail apply operations only after copy process is completed.
