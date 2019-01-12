@@ -7,11 +7,11 @@ import org.bson.Document;
  *
  * File: Tracker
  * Author: Shyam Arjarapu
- * Date: 1/11/19 9:50 PM
+ * Date: 1/12/19 9:10 AM
  * Description:
  *
- * An abstract class representing a resource that can be tracked.
- * This class object helps you track the latest document in a resource
+ * An abstract class representing a tracker that helps
+ * you track / update the latest document for a resource
  *
  */
 public abstract class Tracker {

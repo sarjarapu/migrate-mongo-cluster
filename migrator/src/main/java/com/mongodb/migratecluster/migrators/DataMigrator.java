@@ -1,7 +1,6 @@
 package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
-import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.migratecluster.AppException;
@@ -10,12 +9,10 @@ import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
 import com.mongodb.migratecluster.model.DocumentsBatch;
 import com.mongodb.migratecluster.observables.*;
-import com.mongodb.migratecluster.oplog.OplogMigrator;
 import com.mongodb.migratecluster.predicates.CollectionFilterPredicate;
 import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
 import com.mongodb.migratecluster.trackers.CollectionDataTracker;
 import com.mongodb.migratecluster.trackers.Tracker;
-import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,12 +31,8 @@ import java.util.concurrent.TimeUnit;
 public class DataMigrator extends BaseMigrator {
     final static Logger logger = LoggerFactory.getLogger(DataMigrator.class);
 
-    private final OplogMigrator oplogMigrator;
-
     public DataMigrator(ApplicationOptions options) {
         super(options);
-
-        this.oplogMigrator = new OplogMigrator(options);
     }
 
     @Override
@@ -49,39 +42,25 @@ public class DataMigrator extends BaseMigrator {
             String message = String.format("invalid input args for sourceCluster, targetCluster and oplog. \ngiven: %s", this.options.toString());
             throw new AppException(message);
         }
-
-        // before you begin the copy make a note of oplog entry
-        // if oplog entry already exists do nothing
-        // start copying all the data from source to target
-        // only after completing the copy, you should begin oplog apply
-
-        // if copy failed in between, use of drop option starts all over again
-
-        // start the oplog tailing
-        // this.oplogMigrator.process();
-
         // loop through source and copy to target
-        // NOTE: running the copy without oplog migrator ran correctly.
-        // but with oplog migrator it seems to not fully complete
         readSourceClusterDatabases();
-//
-//        Document doc1 = new Document("name", "shyam");
-//        Document doc2 = new Document("name", "shyam");
-//        System.out.format("doc1 equals doc2: [%s] \n", doc1.equals(doc2)); // worked
-//        System.out.format("doc1 == doc2: [%s] \n", doc1 == doc2); // didn't work
-        // TODO: when copying is all done, auto replay oplog
+    }
+
+    @Override
+    public void preprocess() {
+        // do nothing
     }
 
     private void readSourceClusterDatabases() throws AppException {
-        MongoClient sourceClient = getSourceMongoClient();
-        MongoClient targetClient = getTargetMongoClient();
-        MongoClient oplogClient = getOplogStoreMongoClient();
+        MongoClient sourceClient = getSourceClient();
+        MongoClient targetClient = getTargetClient();
+        MongoClient oplogClient = getOplogClient();
 
         try {
             Date startDateTime = new Date();
             logger.info("started processing at {}", startDateTime);
 
-            readAndWriteResourceDocuments(sourceClient, targetClient, oplogClient);
+            readAndWriteDocuments(sourceClient, targetClient, oplogClient);
 
             Date endDateTime = new Date();
             logger.info("completed processing at {}", endDateTime);
@@ -95,9 +74,9 @@ public class DataMigrator extends BaseMigrator {
         logger.info("Absolutely nothing should be here after this line");
     }
 
-    private void readAndWriteResourceDocuments(MongoClient sourceClient,
-                                               MongoClient targetClient,
-                                               MongoClient oplogClient) {
+    private void readAndWriteDocuments(MongoClient sourceClient,
+                                       MongoClient targetClient,
+                                       MongoClient oplogClient) {
         // load the blacklist filters and create database and collection predicates
         List<ResourceFilter> blacklistFilter = options.getBlackListFilter();
         DatabaseFilterPredicate databasePredicate = new DatabaseFilterPredicate(blacklistFilter);
@@ -145,6 +124,12 @@ public class DataMigrator extends BaseMigrator {
         tracker.updateLatestDocument(document);
     }
 
+    /**
+     * @param client a MongoDB client object to work with collections
+     * @param resource a collection in a database
+     * @return a Document representation of the latest document saved into oplog db
+     * @see Document
+     */
     private Document getLatestDocumentId(MongoClient client, Resource resource) {
         if (options.isDropTarget()) {
             return null;
@@ -155,16 +140,22 @@ public class DataMigrator extends BaseMigrator {
         }
     }
 
-    private void dropTargetCollectionIfRequired(MongoClient targetClient, Resource resource) {
+    /**
+     * Drop the collection on target server if configured to drop existing collections.
+     *
+     * @param client a MongoDB client object to work with collections
+     * @param resource a collection in a database
+     */
+    private void dropTargetCollectionIfRequired(MongoClient client, Resource resource) {
         if (options.isDropTarget()) {
 
-            MongoDatabase database = targetClient.getDatabase(resource.getDatabase());
+            MongoDatabase database = client.getDatabase(resource.getDatabase());
             MongoCollection<Document> collection = database.getCollection(resource.getCollection());
             collection.drop();
 
             logger.info("dropping collection {} on target {}",
                     resource.getNamespace(),
-                    targetClient.getAddress().toString());
+                    client.getAddress().toString());
         }
     }
 
