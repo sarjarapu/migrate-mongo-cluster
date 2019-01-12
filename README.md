@@ -74,7 +74,9 @@ Below are the list of features that I thought of incorporating into the applicat
 - [ ] Status Database to keep track of progress
 - [ ] API to expose status of migrators from database
 - [ ] Runtime injection of the log level
-- [ ] While copying find the id and continue where you left off
+- [x] While copying find the id and continue where you left off
+- [ ] Move the gapWatcher out of the oplogMigrator
+- [ ] Apply the oplogs in bulk operations
 
 
 ## Random notes

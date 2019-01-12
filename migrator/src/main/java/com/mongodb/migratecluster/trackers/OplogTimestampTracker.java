@@ -7,6 +7,17 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ *
+ * File: OplogTimestampTracker
+ * Author: Shyam Arjarapu
+ * Date: 1/12/19 9:45 AM
+ * Description:
+ *
+ * A class representing a tracker for oplog resource.
+ * It helps you track the latest timestamp on migrator
+ *
+ */
 public class OplogTimestampTracker extends DataTracker {
     final static Logger logger = LoggerFactory.getLogger(OplogTimestampTracker.class);
 

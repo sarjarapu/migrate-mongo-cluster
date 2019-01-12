@@ -8,7 +8,6 @@ import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
-import com.mongodb.migratecluster.migrators.DataMigrator;
 import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.slf4j.Logger;

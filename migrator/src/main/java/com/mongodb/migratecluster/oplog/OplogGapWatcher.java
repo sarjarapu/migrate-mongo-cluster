@@ -5,7 +5,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
-import com.mongodb.migratecluster.migrators.DataMigrator;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.schedulers.Schedulers;

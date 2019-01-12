@@ -23,18 +23,28 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * File: DataMigrator
- * Author: shyam.arjarapu
- * Date: 4/13/17 11:45 PM
+ * File: CollectionDataMigrator
+ * Author: Shyam Arjarapu
+ * Date: 1/12/19 9:50 AM
  * Description:
+ *
+ * A class to help migrate collection data from source to target
  */
-public class DataMigrator extends BaseMigrator {
-    final static Logger logger = LoggerFactory.getLogger(DataMigrator.class);
+public class CollectionDataMigrator extends BaseMigrator {
+    final static Logger logger = LoggerFactory.getLogger(CollectionDataMigrator.class);
 
-    public DataMigrator(ApplicationOptions options) {
+    public CollectionDataMigrator(ApplicationOptions options) {
         super(options);
     }
 
+    /**
+     *
+     * A process method that implements actual migration
+     * of collection data from source to target.
+     *
+     * @throws AppException
+     * @see AppException
+     */
     @Override
     public void process() throws AppException {
         // check if the options are valid
@@ -46,6 +56,9 @@ public class DataMigrator extends BaseMigrator {
         readSourceClusterDatabases();
     }
 
+    /**
+     * A method that is invoked before the actual migration process
+     */
     @Override
     public void preprocess() {
         // do nothing

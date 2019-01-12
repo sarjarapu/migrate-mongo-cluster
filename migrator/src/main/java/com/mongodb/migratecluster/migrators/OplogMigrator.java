@@ -34,6 +34,14 @@ public class OplogMigrator extends BaseMigrator {
         this.migratorName = options.getSourceCluster();
     }
 
+    /**
+     *
+     * A process method that implements actual migration
+     * of oplog data from source to target.
+     *
+     * @throws AppException
+     * @see AppException
+     */
     @Override
     public void process() throws AppException {
         BsonTimestamp timestamp = getTargetLatestOplogTimestamp();
