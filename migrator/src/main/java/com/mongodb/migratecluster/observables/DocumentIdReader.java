@@ -10,6 +10,8 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * File: DocumentIdReader
  * Author: Shyam Arjarapu
@@ -52,7 +54,9 @@ public class DocumentIdReader extends Observable<Object> {
 
         if (readFromDocumentId != null) {
             readFromNowOn = false;
+            logger.info("found a tracker entry for resource {}. skipping all document until latest document {}", resource, readFromDocumentId.get("_id"));
         }
+        AtomicInteger counter = new AtomicInteger(0);
         for (Document item : documents) {
             if (!item.isEmpty()) {
                 // TODO: Turn on the throttling here
@@ -62,8 +66,11 @@ public class DocumentIdReader extends Observable<Object> {
                     observer.onNext(item.get("_id"));
                 }
                 else {
-                    if (readFromDocumentId.get("_id").equals(item.get("_id"))) {
+                    counter.addAndGet(1);
+                    logger.debug("skipping current document {}", item.get("_id"));
+                    if (readFromDocumentId.get("latest_id").equals(item.get("_id"))) {
                         readFromNowOn = true;
+                        logger.info("successfully found latest document after reads {}. Document {}", counter.get(), readFromDocumentId.get("latest_id"));
                     }
                 }
             }

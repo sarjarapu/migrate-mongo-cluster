@@ -59,15 +59,15 @@ public class CollectionDataTracker extends Tracker {
 
         MongoCollection<Document> collection = MongoDBHelper.getCollection(client, databaseName, collectionName);
         try {
-            MongoDBHelper.performOperationWithRetry(() -> {
+            return MongoDBHelper.performOperationWithRetry(() -> {
                 FindIterable<Document> documents = collection.find(query).limit(1);
                 return documents.first();
             }, operation);
         } catch (AppException e) {
             logger.error("Error while finding the latest document for resource {}. Error {}",
                     resource, e.getMessage());
+            return null;
         }
-        return null;
     }
 
     /**

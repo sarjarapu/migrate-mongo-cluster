@@ -64,7 +64,11 @@ public class DataMigrator extends BaseMigrator {
         // NOTE: running the copy without oplog migrator ran correctly.
         // but with oplog migrator it seems to not fully complete
         readSourceClusterDatabases();
-
+//
+//        Document doc1 = new Document("name", "shyam");
+//        Document doc2 = new Document("name", "shyam");
+//        System.out.format("doc1 equals doc2: [%s] \n", doc1.equals(doc2)); // worked
+//        System.out.format("doc1 == doc2: [%s] \n", doc1 == doc2); // didn't work
         // TODO: when copying is all done, auto replay oplog
     }
 
@@ -109,7 +113,7 @@ public class DataMigrator extends BaseMigrator {
                 .map(resource -> {
                     logger.info("found collection {}", resource.getNamespace());
                     dropTargetCollectionIfRequired(targetClient, resource);
-                    Document latestDocumentId = getLatestDocumentId(targetClient, resource);
+                    Document latestDocumentId = getLatestDocumentId(oplogClient, resource);
                     return new DocumentReader(sourceClient, resource, latestDocumentId);
                 })
                 .map(reader -> new DocumentWriter(targetClient, reader))
@@ -146,14 +150,8 @@ public class DataMigrator extends BaseMigrator {
             return null;
         }
         else {
-            MongoDatabase database = client.getDatabase(resource.getDatabase());
-            MongoCollection<Document> collection = database.getCollection(resource.getCollection());
-            FindIterable<Document> documents = collection
-                    .find()
-                    .projection(BsonDocument.parse("{_id: 1}"))
-                    .sort(BsonDocument.parse("{$natural: -1}"))
-                    .limit(1);
-            return documents.first();
+            Tracker tracker = new CollectionDataTracker(options.getSourceCluster(), client, resource);
+            return tracker.getLatestDocument();
         }
     }
 

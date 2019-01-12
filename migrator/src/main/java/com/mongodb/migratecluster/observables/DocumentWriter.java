@@ -2,6 +2,8 @@ package com.mongodb.migratecluster.observables;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.model.DocumentsBatch;
 import com.mongodb.migratecluster.observers.BaseDocumentWriter;
@@ -50,7 +52,14 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
                             //.subscribeOn(Schedulers.io())
                             .map(documents -> {
                                 MongoCollection<Document> collection = getMongoCollection();
-                                collection.insertMany(documents);
+                                Document operation = new Document("operation", "insertMany");
+                                MongoDBHelper.performOperationWithRetry(() -> {
+                                    InsertManyOptions options = new InsertManyOptions();
+                                    options.ordered(false);
+                                    collection.insertMany(documents, options);
+                                    return documents.size();
+                                }, operation);
+
 
                                 // TODO: Update the lastDocument entry in oplog database
                                 String message = String.format("Batch %s. Inserted %d documents into target collection: %s",

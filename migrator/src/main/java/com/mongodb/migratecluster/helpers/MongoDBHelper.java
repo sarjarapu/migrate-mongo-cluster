@@ -50,6 +50,15 @@ public  class MongoDBHelper {
                 logger.error("[RETRY] Failed to perform operation. Will retry once; op: {}; error: {}",
                         operation.toJson(), me.toString());
             }
+            catch (MongoBulkWriteException bwe) {
+                if (bwe.getMessage().contains("E11000 duplicate key error collection")) {
+                    logger.warn("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
+                            operation.toJson(), bwe.toString());
+                    return null;
+                }
+                logger.error("error while performing operation: {}; error: {}", operation.toJson(), bwe.toString());
+                throw bwe;
+            }
             catch (MongoWriteException we) {
                 if (we.getMessage().startsWith("E11000 duplicate key error collection")) {
                     logger.warn("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
