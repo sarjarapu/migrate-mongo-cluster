@@ -1,16 +1,19 @@
 package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
+import com.mongodb.migratecluster.model.DocumentsBatch;
 import com.mongodb.migratecluster.observables.*;
 import com.mongodb.migratecluster.oplog.OplogMigrator;
 import com.mongodb.migratecluster.predicates.CollectionFilterPredicate;
 import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,13 +104,46 @@ public class DataMigrator extends BaseMigrator {
                 .map(resource -> {
                     logger.info("found collection {}", resource.getNamespace());
                     dropTargetCollectionIfRequired(targetClient, resource);
-                    return new DocumentReader(sourceClient, resource);
+                    Document latestDocumentId = getLatestDocumentId(targetClient, resource);
+                    return new DocumentReader(sourceClient, resource, latestDocumentId);
                 })
                 .map(reader -> new DocumentWriter(targetClient, reader))
-                .subscribe(writer -> writer.blockingLast());
+                .subscribe(writer -> {
+                    DocumentsBatch resourceDocuments1 = writer
+                            .map((DocumentsBatch batch) -> {
+                                saveLastDocumentInBatch(batch);
+                                return batch;
+                            })
+                            .blockingLast();
+//                    Resource resource = resourceDocuments1.getResource();
+//                    logger.info("Make an update to the oplog database about the last entry. Resource {}. Completed inserting docs {}",
+//                            resource, resourceDocuments1.getSize());
+//                    //return resourceDocuments1;
+                });
         
         sourceClient.close();
         targetClient.close();
+    }
+
+    private void saveLastDocumentInBatch(DocumentsBatch batch) {
+        Document document = batch.getDocuments().get(batch.getSize()-1);
+        logger.info("Saving Batch {}. lastDocumentId [{}]", batch.toString(), document.get("_id"));
+    }
+
+    private Document getLatestDocumentId(MongoClient client, Resource resource) {
+        if (options.isDropTarget()) {
+            return null;
+        }
+        else {
+            MongoDatabase database = client.getDatabase(resource.getDatabase());
+            MongoCollection<Document> collection = database.getCollection(resource.getCollection());
+            FindIterable<Document> documents = collection
+                    .find()
+                    .projection(BsonDocument.parse("{_id: 1}"))
+                    .sort(BsonDocument.parse("{$natural: -1}"))
+                    .limit(1);
+            return documents.first();
+        }
     }
 
     private void dropTargetCollectionIfRequired(MongoClient targetClient, Resource resource) {

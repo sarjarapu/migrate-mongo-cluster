@@ -3,6 +3,7 @@ package com.mongodb.migratecluster.observables;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.model.DocumentsBatch;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import org.bson.Document;
@@ -12,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Filters.in;
 
@@ -22,7 +22,7 @@ import static com.mongodb.client.model.Filters.in;
  * Date: 4/17/17 11:39 PM
  * Description:
  */
-public class DocumentsObservable extends Observable<List<ResourceDocument>> {
+public class DocumentsObservable extends Observable<DocumentsBatch> {
     private final Resource resource;
 
     private final Object[] ids;
@@ -37,14 +37,14 @@ public class DocumentsObservable extends Observable<List<ResourceDocument>> {
     }
 
     @Override
-    protected void subscribeActual(Observer<? super List<ResourceDocument>> observer) {
+    protected void subscribeActual(Observer<? super DocumentsBatch> observer) {
         List<Document> documents = getDocumentsFromDB();
-        List<ResourceDocument> resourceDocuments = createResourceDocumentsFrom(documents);
 
         String message = String.format("read %s full documents based on given _id's. ", documents.size());
         logger.info(message);
 
-        observer.onNext(resourceDocuments);
+        DocumentsBatch batch = new DocumentsBatch(resource, 0, documents);
+        observer.onNext(batch);
         observer.onComplete();
     }
 
@@ -57,12 +57,5 @@ public class DocumentsObservable extends Observable<List<ResourceDocument>> {
             docs.add(item);
         }
         return docs;
-    }
-
-    private List<ResourceDocument> createResourceDocumentsFrom(List<Document> docs) {
-        // create resource documents from bson.document
-        return docs.stream()
-                .map(d -> new ResourceDocument(this.resource, d))
-                .collect(Collectors.toList());
     }
 }

@@ -3,6 +3,7 @@ package com.mongodb.migratecluster.observables;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.model.DocumentsBatch;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.functions.Function;
@@ -22,40 +23,41 @@ import java.util.concurrent.atomic.AtomicInteger;
  * this class helps you read full documents in batches
  * and publish them for any subscribers to listen.
  */
-public class DocumentReader extends Observable<List<ResourceDocument>> {
+public class DocumentReader extends Observable<DocumentsBatch> {
     final static Logger logger = LoggerFactory.getLogger(DocumentReader.class);
     private final Resource resource;
+    private final Document readFromDocumentId;
     private  MongoCollection<Document> collection;
 
-    public DocumentReader(MongoClient client, Resource resource) {
+
+    public DocumentReader(MongoClient client, Resource resource, Document readFromDocumentId) {
         this.resource = resource;
+        this.readFromDocumentId = readFromDocumentId;
         this.collection = client.getDatabase(resource.getDatabase()).getCollection(resource.getCollection());
     }
 
+    /**
+     * @param observer
+     */
     @Override
-    protected void subscribeActual(Observer<? super List<ResourceDocument>> observer) {
-        Observable<Object> observable = new DocumentIdReader(collection, resource);
+    protected void subscribeActual(Observer<? super DocumentsBatch> observer) {
+        Observable<Object> observable = new DocumentIdReader(collection, resource, readFromDocumentId);
         AtomicInteger docsCount = new AtomicInteger(0);
-
-        // TODO: load where you left off
 
         // fetch the ids and do bulk read of 1000 docs at a time
         observable
                 .buffer(1000)
-                .flatMap(new Function<List<Object>, Observable<List<ResourceDocument>>>() {
+                .flatMap(new Function<List<Object>, Observable<DocumentsBatch>>() {
                     @Override
-                    public Observable<List<ResourceDocument>> apply(List<Object> ids) throws Exception {
-                        // NOTE: if last known insert _id is not null then you could check for _id in _ids
-                        // when found continue to process from there
-
-                        return new DocumentsObservable(collection, getResource(), ids.toArray())
-                                .subscribeOn(Schedulers.io());
+                    public Observable<DocumentsBatch> apply(List<Object> ids) throws Exception {
+                        return new DocumentsObservable(collection, getResource(), ids.toArray());
+                                //.subscribeOn(Schedulers.io());
                     }
                 })
-                .blockingSubscribe(k -> {
+                .blockingSubscribe(batch -> {
                     logger.info("reader for resource: {} got {} documents; so far read total {} documents in this run.",
-                            this.resource.getNamespace(),  k.size(), docsCount.addAndGet(k.size()));
-                    observer.onNext(k);
+                            this.resource.getNamespace(),  batch.getSize(), docsCount.addAndGet(batch.getSize()));
+                    observer.onNext(batch);
                 });
         // NOTE: by not blocking here, there is possibility of missing last set in the buffer
         observable.blockingLast();
