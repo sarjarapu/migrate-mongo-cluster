@@ -4,12 +4,10 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.ListCollectionsIterable;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.migratecluster.commandline.Resource;
-import io.reactivex.Flowable;
+import com.mongodb.migratecluster.model.Resource;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import org.bson.Document;
-import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

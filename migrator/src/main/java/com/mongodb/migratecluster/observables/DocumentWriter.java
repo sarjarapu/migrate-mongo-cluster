@@ -2,7 +2,7 @@ package com.mongodb.migratecluster.observables;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.model.DocumentsBatch;
 import com.mongodb.migratecluster.observers.BaseDocumentWriter;
 import io.reactivex.Observable;
@@ -13,7 +13,6 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -37,7 +36,7 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
     @Override
     protected void subscribeActual(Observer<? super DocumentsBatch> observer) {
         AtomicInteger documentCountTracker = new AtomicInteger(0);
-        AtomicInteger batchIdTracker = new AtomicInteger(0);
+        //AtomicInteger batchIdTracker = new AtomicInteger(0);
 
         Observable<DocumentsBatch> observable = this.documentReader
             .flatMap(new Function<DocumentsBatch, ObservableSource<DocumentsBatch>>() {
@@ -55,7 +54,7 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
 
                                 // TODO: Update the lastDocument entry in oplog database
                                 String message = String.format("Batch %s. Inserted %d documents into target collection: %s",
-                                        batchIdTracker.addAndGet(1), documents.size(), resource.getNamespace());
+                                        batch.getBatchId(), documents.size(), resource.getNamespace());
                                 logger.info(message);
                                 documentCountTracker.addAndGet(documents.size());
 

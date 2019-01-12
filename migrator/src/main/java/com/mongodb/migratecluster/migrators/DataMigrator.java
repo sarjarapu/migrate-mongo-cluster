@@ -6,13 +6,15 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
-import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
 import com.mongodb.migratecluster.model.DocumentsBatch;
 import com.mongodb.migratecluster.observables.*;
 import com.mongodb.migratecluster.oplog.OplogMigrator;
 import com.mongodb.migratecluster.predicates.CollectionFilterPredicate;
 import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
+import com.mongodb.migratecluster.trackers.CollectionDataTracker;
+import com.mongodb.migratecluster.trackers.Tracker;
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -69,12 +71,13 @@ public class DataMigrator extends BaseMigrator {
     private void readSourceClusterDatabases() throws AppException {
         MongoClient sourceClient = getSourceMongoClient();
         MongoClient targetClient = getTargetMongoClient();
+        MongoClient oplogClient = getOplogStoreMongoClient();
 
         try {
             Date startDateTime = new Date();
             logger.info("started processing at {}", startDateTime);
 
-            readAndWriteResourceDocuments(sourceClient, targetClient);
+            readAndWriteResourceDocuments(sourceClient, targetClient, oplogClient);
 
             Date endDateTime = new Date();
             logger.info("completed processing at {}", endDateTime);
@@ -88,7 +91,9 @@ public class DataMigrator extends BaseMigrator {
         logger.info("Absolutely nothing should be here after this line");
     }
 
-    private void readAndWriteResourceDocuments(MongoClient sourceClient, MongoClient targetClient) {
+    private void readAndWriteResourceDocuments(MongoClient sourceClient,
+                                               MongoClient targetClient,
+                                               MongoClient oplogClient) {
         // load the blacklist filters and create database and collection predicates
         List<ResourceFilter> blacklistFilter = options.getBlackListFilter();
         DatabaseFilterPredicate databasePredicate = new DatabaseFilterPredicate(blacklistFilter);
@@ -109,25 +114,31 @@ public class DataMigrator extends BaseMigrator {
                 })
                 .map(reader -> new DocumentWriter(targetClient, reader))
                 .subscribe(writer -> {
-                    DocumentsBatch resourceDocuments1 = writer
-                            .map((DocumentsBatch batch) -> {
-                                saveLastDocumentInBatch(batch);
-                                return batch;
-                            })
-                            .blockingLast();
-//                    Resource resource = resourceDocuments1.getResource();
-//                    logger.info("Make an update to the oplog database about the last entry. Resource {}. Completed inserting docs {}",
-//                            resource, resourceDocuments1.getSize());
-//                    //return resourceDocuments1;
+                    writer
+                        .map((DocumentsBatch batch) -> {
+                            saveLastDocumentInBatch(oplogClient, batch);
+                            return batch;
+                        })
+                        .blockingLast();
                 });
         
         sourceClient.close();
         targetClient.close();
     }
 
-    private void saveLastDocumentInBatch(DocumentsBatch batch) {
+    /**
+     * Saves the last document from the batch to the oplog database for tracking
+     *
+     * @param batch an object representing current batch of data
+     * @see DocumentsBatch
+     *
+     */
+    private void saveLastDocumentInBatch(MongoClient client, DocumentsBatch batch) {
         Document document = batch.getDocuments().get(batch.getSize()-1);
         logger.info("Saving Batch {}. lastDocumentId [{}]", batch.toString(), document.get("_id"));
+
+        Tracker tracker = new CollectionDataTracker(options.getSourceCluster(), client, batch.getResource());
+        tracker.updateLatestDocument(document);
     }
 
     private Document getLatestDocumentId(MongoClient client, Resource resource) {

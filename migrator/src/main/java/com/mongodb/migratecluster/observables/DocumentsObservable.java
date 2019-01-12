@@ -2,7 +2,7 @@ package com.mongodb.migratecluster.observables;
 
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.model.DocumentsBatch;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
@@ -24,14 +24,15 @@ import static com.mongodb.client.model.Filters.in;
  */
 public class DocumentsObservable extends Observable<DocumentsBatch> {
     private final Resource resource;
-
+    private final int batchId;
     private final Object[] ids;
     private final MongoCollection<Document> collection;
 
     private final static Logger logger = LoggerFactory.getLogger(DocumentsObservable.class);
 
-    public DocumentsObservable(MongoCollection<Document> collection, Resource resource, Object[] ids) {
+    public DocumentsObservable(MongoCollection<Document> collection, Resource resource, int batchId, Object[] ids) {
         this.resource = resource;
+        this.batchId = batchId;
         this.ids = ids;
         this.collection = collection;
     }
@@ -43,7 +44,7 @@ public class DocumentsObservable extends Observable<DocumentsBatch> {
         String message = String.format("read %s full documents based on given _id's. ", documents.size());
         logger.info(message);
 
-        DocumentsBatch batch = new DocumentsBatch(resource, 0, documents);
+        DocumentsBatch batch = new DocumentsBatch(resource, batchId, documents);
         observer.onNext(batch);
         observer.onComplete();
     }

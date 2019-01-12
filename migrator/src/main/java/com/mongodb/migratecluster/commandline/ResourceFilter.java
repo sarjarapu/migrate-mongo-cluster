@@ -1,6 +1,7 @@
 package com.mongodb.migratecluster.commandline;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.mongodb.migratecluster.model.Resource;
 
 /**
  * File: ResourceFilter

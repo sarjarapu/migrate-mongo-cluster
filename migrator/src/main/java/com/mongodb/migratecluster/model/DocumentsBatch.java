@@ -1,6 +1,5 @@
 package com.mongodb.migratecluster.model;
 
-import com.mongodb.migratecluster.commandline.Resource;
 import org.bson.Document;
 
 import java.util.List;
@@ -52,6 +51,7 @@ public class DocumentsBatch {
 
     /**
      * @return a list of all the Documents in this Batch
+     * @see Document
      */
     public List<Document> getDocuments() {
         return documents;
@@ -69,7 +69,7 @@ public class DocumentsBatch {
      */
     @Override
     public String toString() {
-        return String.format("Resource: %s; Batch ID: %d, Total Documents: %d",
+        return String.format("{ resource: %s; batchId: %d, size: %d }",
                 resource.toString(), batchId, documents.size());
     }
 }

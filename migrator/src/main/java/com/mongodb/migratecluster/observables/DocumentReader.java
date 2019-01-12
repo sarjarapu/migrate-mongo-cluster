@@ -2,12 +2,11 @@ package com.mongodb.migratecluster.observables;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.model.DocumentsBatch;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.functions.Function;
-import io.reactivex.schedulers.Schedulers;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +42,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
     protected void subscribeActual(Observer<? super DocumentsBatch> observer) {
         Observable<Object> observable = new DocumentIdReader(collection, resource, readFromDocumentId);
         AtomicInteger docsCount = new AtomicInteger(0);
+        AtomicInteger batchIdTracker = new AtomicInteger(0);
 
         // fetch the ids and do bulk read of 1000 docs at a time
         observable
@@ -50,8 +50,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
                 .flatMap(new Function<List<Object>, Observable<DocumentsBatch>>() {
                     @Override
                     public Observable<DocumentsBatch> apply(List<Object> ids) throws Exception {
-                        return new DocumentsObservable(collection, getResource(), ids.toArray());
-                                //.subscribeOn(Schedulers.io());
+                        return new DocumentsObservable(collection, getResource(), batchIdTracker.getAndAdd(1), ids.toArray());
                     }
                 })
                 .blockingSubscribe(batch -> {

@@ -2,7 +2,7 @@ package com.mongodb.migratecluster.observables;
 
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.model.Resource;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import org.bson.BsonDocument;

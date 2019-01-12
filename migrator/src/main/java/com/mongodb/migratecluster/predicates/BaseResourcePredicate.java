@@ -1,6 +1,6 @@
 package com.mongodb.migratecluster.predicates;
 
-import com.mongodb.migratecluster.commandline.Resource;
+import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
 
 import java.util.List;
