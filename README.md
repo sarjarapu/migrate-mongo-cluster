@@ -77,6 +77,7 @@ Below are the list of features that I thought of incorporating into the applicat
 - [x] While copying find the id and continue where you left off
 - [ ] Move the gapWatcher out of the oplogMigrator
 - [ ] Apply the oplogs in bulk operations
+- [ ] Use the readPreference on collection vs on client
 
 
 ## Random notes

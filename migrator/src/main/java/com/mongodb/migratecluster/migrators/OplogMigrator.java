@@ -159,9 +159,10 @@ public class OplogMigrator extends BaseMigrator {
         OplogReader reader = new OplogReader(sourceClient, lastTimestamp);
         OplogWriter writer = new OplogWriter(targetClient, oplogStoreClient, this.migratorName);
 
-        reader.subscribe(op -> {
-            writer.applyOperation(op);
-        });
+        // TODO: create new observable that is either buffer by count or time
+        reader
+            .buffer(1000)
+            .subscribe(ops -> writer.applyOperations(ops));
     }
 
     /**
