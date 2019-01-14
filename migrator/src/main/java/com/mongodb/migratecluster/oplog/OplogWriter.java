@@ -15,9 +15,11 @@ import org.slf4j.LoggerFactory;
 
 /**
  * File: OplogWriter
- * Author: shyam.arjarapu
- * Date: 6/5/17 11:34 AM
+ * Author: Shyam Arjarapu
+ * Date: 1/14/19 7:20 AM
  * Description:
+ *
+ * A class to help write the apply the oplog entries on the target
  */
 public class OplogWriter {
     private final MongoClient oplogStoreClient;

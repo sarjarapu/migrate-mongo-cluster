@@ -24,6 +24,15 @@ public class DataWithOplogMigrator extends BaseMigrator {
     }
 
     /**
+     * A method that is invoked before the actual migration process
+     */
+    @Override
+    public void preprocess() {
+        oplogMigrator.preprocess();
+//        dataMigrator.preprocess();
+    }
+
+    /**
      *
      * A process method that implements actual migration
      * of collection data and oplog store from source to target.
@@ -39,14 +48,5 @@ public class DataWithOplogMigrator extends BaseMigrator {
         // once that is complete apply oplog entries
 //        dataMigrator.process();
         oplogMigrator.process();
-    }
-
-    /**
-     * A method that is invoked before the actual migration process
-     */
-    @Override
-    public void preprocess() {
-        oplogMigrator.preprocess();
-//        dataMigrator.preprocess();
     }
 }

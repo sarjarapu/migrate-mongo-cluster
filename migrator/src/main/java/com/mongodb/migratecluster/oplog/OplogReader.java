@@ -16,9 +16,12 @@ import java.util.List;
 
 /**
  * File: OplogReader
- * Author: shyam.arjarapu
- * Date: 4/29/17 4:46 PM
+ * Author: Shyam Arjarapu
+ * Date: 1/14/19 7:15 AM
  * Description:
+ *
+ * A class to help read the oplog entries and publish them for any subscribers
+ *
  */
 public class OplogReader extends Observable<Document> {
     private final MongoClient client;

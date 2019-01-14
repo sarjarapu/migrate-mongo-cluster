@@ -17,9 +17,12 @@ import org.slf4j.LoggerFactory;
 
 /**
  * File: OplogMigrator
- * Author: shyam.arjarapu
- * Date: 6/5/17 11:34 AM
+ * Author: Shyam Arjarapu
+ * Date: 1/14/17 6:20 AM
  * Description:
+ *
+ * A class to migrate all the oplog entries from source to oplog store
+ *
  */
 public class OplogMigrator extends BaseMigrator {
     final static Logger logger = LoggerFactory.getLogger(OplogMigrator.class);
@@ -28,11 +31,21 @@ public class OplogMigrator extends BaseMigrator {
 
     private final Resource oplogTrackerResource;
     private final Resource oplogRsResource;
+    private Runnable gapWatcher;
 
     public OplogMigrator(ApplicationOptions options) {
         super(options);
         oplogTrackerResource = new Resource("migrate-mongo", "oplog.tracker");
         oplogRsResource = new Resource("local", "oplog.rs");
+    }
+
+    /**
+     * A method that is invoked before the actual migration process
+     */
+    @Override
+    public void preprocess() {
+        dropTargetCollectionIfRequired(this.getOplogClient());
+        saveSourceOplogTimeOnOplogstoreIfNotExists();
     }
 
     /**
@@ -45,33 +58,16 @@ public class OplogMigrator extends BaseMigrator {
      */
     @Override
     public void process() throws AppException {
-//        BsonTimestamp timestamp = getMigatorsLatestOplogTimestamp();
-//        if (timestamp == null) {
-//            logger.info("no oplog entry is found for the shard: [{}]", migratorName);
-//        }
-//        else {
-//            logger.info("found the latest oplog entry for shard: [{}] with timestamp: [{}]", migratorName, timestamp);
-//        }
-//        ((Runnable) () -> createGapWatcher()).run();
-//        this.readSourceAndWriteTarget(timestamp);
+        BsonTimestamp timestamp = getTimestampFromOplogStore();
+        gapWatcher = () -> createGapWatcher();
+        gapWatcher.run();
+        this.copyOplogsFromSourceToOplogstore(timestamp);
     }
 
     /**
-     * A method that is invoked before the actual migration process
+     * Save's the most recent oplog timestamp on oplog store for current reader if not saved already
      */
-    @Override
-    public void preprocess() {
-        dropTargetCollectionIfRequired(this.getOplogClient());
-        saveSourceOplogTimeIfNotExists();
-    }
-
-    private void saveSourceOplogTimeIfNotExists() {
-        // TODO
-        // if drop, recreate using latest oplog from source
-        // else check if an entry already exists.
-        // if exists , do nothing
-        // else make an entry
-
+    private void saveSourceOplogTimeOnOplogstoreIfNotExists() {
         if (options.isDropTarget()) {
             fetchRecentEntryFromSourceAndSaveToOplogstore();
         }
@@ -151,40 +147,12 @@ public class OplogMigrator extends BaseMigrator {
         }
     }
 
-
-//    /**
-//     * Get's the saved oplog timestamp for the given migrator
-//     *
-//     * @param client a MongoDB client object to work with collections
-//     * @param reader a string representation of the migrator name
-//     * @return
-//     */
-//    private BsonTimestamp getOplogTrackerTimestamp(MongoClient client, String reader) {
-//        // NOTE: local.oplog.rs contains the oplog entries as it replicates
-//        // However when we read from source, we have to perform the operation
-//        // on target's primary as a new operation. Because of this the oplog
-//        // time in target would not be same as the one in source. So, track
-//        // the optime separately in another collection per each shard
-//        MongoCollection<Document> collection =
-//                MongoDBHelper.getCollection(client, "migrate-mongo", "oplog.tracker");
-//
-//        Document query = new Document("reader", reader);
-//        MongoCursor<Document> cursor =
-//                collection
-//                        .find(query)
-//                        .sort(new Document("$natural", -1))
-//                        .limit(1)
-//                        .iterator();
-//
-//        BsonTimestamp ts = null;
-//        if (cursor.hasNext()){
-//            ts = cursor.next().get("ts", BsonTimestamp.class);
-//        }
-//        return ts;
-//    }
-
-
-    private void readSourceAndWriteTarget(BsonTimestamp lastTimestamp) {
+    /**
+     * Copies all the oplog entries since the given timestamp from source to oplog store
+     *
+     * @param lastTimestamp a timestamp on source
+     */
+    private void copyOplogsFromSourceToOplogstore(BsonTimestamp lastTimestamp) {
         MongoClient sourceClient = getSourceClient();
         MongoClient targetClient = getTargetClient();
         MongoClient oplogStoreClient = getOplogClient();
@@ -196,16 +164,18 @@ public class OplogMigrator extends BaseMigrator {
         });
     }
 
+    /**
+     * Creates a watcher that notifies the gap between oplog entries on source to oplog store
+     */
     private void createGapWatcher() {
         MongoClient sourceClient = getSourceClient();
         MongoClient oplogStoreClient = getOplogClient();
 
         watcher = new OplogGapWatcher(sourceClient, oplogStoreClient, this.migratorName);
         watcher
-                .subscribeOn(Schedulers.newThread())
-                .subscribe(gap -> {
-                    logger.info(gap.toString());
-                });
+            .subscribeOn(Schedulers.newThread())
+            .subscribe(gap -> {
+                logger.info(gap.toString());
+            });
     }
-
 }

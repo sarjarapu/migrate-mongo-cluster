@@ -1,20 +1,20 @@
 package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
-import com.mongodb.migratecluster.helpers.MongoDBHelper;
-import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
+import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.DocumentsBatch;
-import com.mongodb.migratecluster.observables.*;
+import com.mongodb.migratecluster.model.Resource;
+import com.mongodb.migratecluster.observables.CollectionFlowable;
+import com.mongodb.migratecluster.observables.DatabaseFlowable;
+import com.mongodb.migratecluster.observables.DocumentReader;
+import com.mongodb.migratecluster.observables.DocumentWriter;
 import com.mongodb.migratecluster.predicates.CollectionFilterPredicate;
 import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
 import com.mongodb.migratecluster.trackers.CollectionDataTracker;
 import com.mongodb.migratecluster.trackers.ReadOnlyTracker;
-import com.mongodb.migratecluster.trackers.Tracker;
 import com.mongodb.migratecluster.trackers.WritableDataTracker;
 import org.bson.Document;
 import org.slf4j.Logger;
