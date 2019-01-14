@@ -10,19 +10,14 @@ import org.bson.Document;
 
 public abstract class ReadOnlyDataTracker extends ReadOnlyTracker {
     protected final MongoClient client;
-    protected final String reader;
-    protected final String trackerKey;
 
     /**
      * @param client a MongoDB client object to work with collections
      * @param resource a resource representing the collection in a database
-     * @param reader a string representation of the current reader / migrator name
      */
-    public ReadOnlyDataTracker(MongoClient client, Resource resource, String reader, String trackerKey) {
+    public ReadOnlyDataTracker(MongoClient client, Resource resource) {
         super(resource);
         this.client = client;
-        this.reader = reader;
-        this.trackerKey = trackerKey;
     }
 
     /**

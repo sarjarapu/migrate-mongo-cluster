@@ -11,8 +11,8 @@ import org.bson.Document;
 
 public abstract class WritableDataTracker extends ReadOnlyDataTracker implements WritableTracker {
 
-    public WritableDataTracker(MongoClient client, Resource resource, String reader, String trackerKey) {
-        super(client, resource, reader, trackerKey);
+    public WritableDataTracker(MongoClient client, Resource resource) {
+        super(client, resource);
     }
 
     /**

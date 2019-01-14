@@ -1,8 +1,6 @@
 package com.mongodb.migratecluster.migrators;
 
 import com.mongodb.MongoClient;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
@@ -28,11 +26,13 @@ public class OplogMigrator extends BaseMigrator {
 
     private OplogGapWatcher watcher;
 
-    private final Resource resource;
+    private final Resource oplogTrackerResource;
+    private final Resource oplogRsResource;
 
     public OplogMigrator(ApplicationOptions options) {
         super(options);
-        resource  = new Resource("migrate-mongo", "oplog.tracker");
+        oplogTrackerResource = new Resource("migrate-mongo", "oplog.tracker");
+        oplogRsResource = new Resource("local", "oplog.rs");
     }
 
     /**
@@ -73,16 +73,23 @@ public class OplogMigrator extends BaseMigrator {
         // else make an entry
 
         if (options.isDropTarget()) {
-            // get source oplop
-            // save
+            fetchRecentEntryFromSourceAndSaveToOplogstore();
         }
         else {
             // get latest timestamp from oplog store
             BsonTimestamp timestamp = getTimestampFromOplogStore();
             if (timestamp == null) {
-                BsonTimestamp sourceTimestamp = getTimestampFromSource();
+                fetchRecentEntryFromSourceAndSaveToOplogstore();
             }
         }
+    }
+
+    /**
+     * Fetches the recent oplog entry from source and saves onto the oplog store
+     */
+    private void fetchRecentEntryFromSourceAndSaveToOplogstore() {
+        Document document = getLatestOplogEntryFromSource();
+        saveTimestampToOplogStore(document);
     }
 
     /**
@@ -96,24 +103,39 @@ public class OplogMigrator extends BaseMigrator {
         }
         else {
             MongoClient client = this.getOplogClient();
-            ReadOnlyTracker tracker = new OplogTimestampTracker(this.migratorName, client, resource);
+            ReadOnlyTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.migratorName);
             Document document = tracker.getLatestDocument();
             client.close();
+            if (document == null) {
+                return null;
+            }
             return document.get("ts", BsonTimestamp.class);
         }
     }
 
     /**
-     * Get's the current oplog timestamp on source
+     * Get's the most recent oplog entry from source
      *
-     * @return a oplog timestamp fetched from the source
+     * @return a document representing oplog entry fetched from the source
      */
-    private BsonTimestamp getTimestampFromSource() {
+    private Document getLatestOplogEntryFromSource() {
         MongoClient client = this.getSourceClient();
-        ReadOnlyTracker tracker = new CollectionDataTracker(client, resource, this.migratorName);
+        ReadOnlyTracker tracker = new OplogTimestampReader(client, oplogRsResource, this.migratorName);
         Document document = tracker.getLatestDocument();
         client.close();
-        return document.get("ts", BsonTimestamp.class);
+        return document;
+    }
+
+    /**
+     * Save's a document as the lastest oplog timestamp on oplog store
+     *
+     * @param document a document representing the fields that need to be set
+     */
+    private void saveTimestampToOplogStore(Document document) {
+        MongoClient client = this.getOplogClient();
+        WritableDataTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.migratorName);
+        tracker.updateLatestDocument(document);
+        client.close();
     }
 
     /**
@@ -123,7 +145,9 @@ public class OplogMigrator extends BaseMigrator {
      */
     private void dropTargetCollectionIfRequired(MongoClient client) {
         if (options.isDropTarget()) {
-            MongoDBHelper.dropCollection(client, resource.getDatabase(), resource.getCollection());
+            MongoDBHelper.dropCollection(client,
+                    oplogTrackerResource.getDatabase(),
+                    oplogTrackerResource.getCollection());
         }
     }
 

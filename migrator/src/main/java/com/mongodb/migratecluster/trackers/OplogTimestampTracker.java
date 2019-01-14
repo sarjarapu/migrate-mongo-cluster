@@ -20,14 +20,18 @@ import org.slf4j.LoggerFactory;
  */
 public class OplogTimestampTracker extends WritableDataTracker {
     final static Logger logger = LoggerFactory.getLogger(OplogTimestampTracker.class);
+    protected final String reader;
+    protected final String trackerKey;
 
     /**
-     * @param reader a string representation of the current reader / migrator name
      * @param client a MongoDB client object to work with collections
      * @param resource a resource representing the collection in a database
+     * @param reader a string representation of the current reader / migrator name
      */
-    public OplogTimestampTracker(String reader, MongoClient client, Resource resource) {
-        super(client, resource, reader, "ts");
+    public OplogTimestampTracker(MongoClient client, Resource resource, String reader) {
+        super(client, resource);
+        this.reader = reader;
+        this.trackerKey = "ts";
     }
 
 

@@ -23,13 +23,18 @@ import java.util.List;
 public class CollectionDataTracker extends WritableDataTracker {
     final static Logger logger = LoggerFactory.getLogger(CollectionDataTracker.class);
 
+    protected final String reader;
+    protected final String trackerKey;
+
     /**
      * @param client a MongoDB client object to work with collections
-     * @param reader a string representation of the current reader / migrator name
      * @param resource a resource representing the collection in a database
+     * @param reader a string representation of the current reader / migrator name
      */
     public CollectionDataTracker(MongoClient client, Resource resource, String reader) {
-        super(client, resource, reader, "latest_id");
+        super(client, resource);
+        this.reader = reader;
+        this.trackerKey = "latest_id";
     }
 
     /**

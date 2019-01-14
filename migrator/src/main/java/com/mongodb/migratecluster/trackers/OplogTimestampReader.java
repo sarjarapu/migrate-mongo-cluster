@@ -22,6 +22,8 @@ import java.util.List;
  */
 public class OplogTimestampReader extends ReadOnlyDataTracker {
     final static Logger logger = LoggerFactory.getLogger(OplogTimestampReader.class);
+    protected final String reader;
+    protected final String trackerKey;
 
     /**
      * @param client a MongoDB client object to work with collections
@@ -29,14 +31,16 @@ public class OplogTimestampReader extends ReadOnlyDataTracker {
      * @param reader a string representation of the current reader / migrator name
      */
     public OplogTimestampReader(MongoClient client, Resource resource, String reader) {
-        super(client, resource, reader, "ts");
+        super(client, resource);
+        this.reader = reader;
+        this.trackerKey = "ts";
     }
 
     /**
-     * @param reader a string representation of the current reader / migrator name
      * @param client a MongoDB client object to work with collections
+     * @param reader a string representation of the current reader / migrator name
      */
-    public OplogTimestampReader(String reader, MongoClient client) {
+    public OplogTimestampReader(MongoClient client, String reader) {
         this(client, new Resource("local", "oplog.rs"), reader);
     }
 
