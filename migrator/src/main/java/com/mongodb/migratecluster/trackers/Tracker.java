@@ -14,30 +14,13 @@ import org.bson.Document;
  * you track / update the latest document for a resource
  *
  */
-public abstract class Tracker {
-
-    protected final Resource resource;
+public abstract class Tracker extends ReadOnlyTracker implements WritableTracker {
 
     /**
      * @param resource a resource representing the collection in a database
      */
     protected Tracker(Resource resource) {
-        this.resource = resource;
+        super(resource);
     }
 
-    /**
-     * Get's the latest document associated with the resource
-     *
-     * @return document a document representing the most recently processed
-     * @see Document
-     */
-    public abstract Document getLatestDocument();
-
-    /**
-     * Saves the latest document into the trackers database for given resource
-     *
-     * @param document a document representing the most recently processed
-     * @see Document
-     */
-    public abstract void updateLatestDocument(Document document);
 }

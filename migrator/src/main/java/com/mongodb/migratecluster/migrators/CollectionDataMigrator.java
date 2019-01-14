@@ -5,6 +5,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
+import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
 import com.mongodb.migratecluster.model.DocumentsBatch;
@@ -12,7 +13,9 @@ import com.mongodb.migratecluster.observables.*;
 import com.mongodb.migratecluster.predicates.CollectionFilterPredicate;
 import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
 import com.mongodb.migratecluster.trackers.CollectionDataTracker;
+import com.mongodb.migratecluster.trackers.ReadOnlyTracker;
 import com.mongodb.migratecluster.trackers.Tracker;
+import com.mongodb.migratecluster.trackers.WritableDataTracker;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,7 +136,7 @@ public class CollectionDataMigrator extends BaseMigrator {
         Document document = batch.getDocuments().get(batch.getSize()-1);
         logger.info("Saving Batch {}. lastDocumentId [{}]", batch.toString(), document.get("_id"));
 
-        Tracker tracker = new CollectionDataTracker(options.getSourceCluster(), client, batch.getResource());
+        WritableDataTracker tracker = new CollectionDataTracker(client, batch.getResource(), this.migratorName);
         tracker.updateLatestDocument(document);
     }
 
@@ -148,7 +151,7 @@ public class CollectionDataMigrator extends BaseMigrator {
             return null;
         }
         else {
-            Tracker tracker = new CollectionDataTracker(options.getSourceCluster(), client, resource);
+            ReadOnlyTracker tracker = new CollectionDataTracker(client, resource, this.migratorName);
             return tracker.getLatestDocument();
         }
     }
@@ -161,14 +164,7 @@ public class CollectionDataMigrator extends BaseMigrator {
      */
     private void dropTargetCollectionIfRequired(MongoClient client, Resource resource) {
         if (options.isDropTarget()) {
-
-            MongoDatabase database = client.getDatabase(resource.getDatabase());
-            MongoCollection<Document> collection = database.getCollection(resource.getCollection());
-            collection.drop();
-
-            logger.info("dropping collection {} on target {}",
-                    resource.getNamespace(),
-                    client.getAddress().toString());
+            MongoDBHelper.dropCollection(client, resource.getDatabase(), resource.getCollection());
         }
     }
 

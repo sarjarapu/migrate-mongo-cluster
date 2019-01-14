@@ -5,6 +5,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.Application;
+import com.mongodb.migratecluster.model.Resource;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,4 +77,18 @@ public  class MongoDBHelper {
         return null;
     }
 
+
+    /**
+     * Drop the collection on given MongoDB client
+     *
+     * @param client a MongoDB client object to work with collections
+     * @param databaseName a string representing the database name
+     * @param collectionName a string representing the collection name
+     */
+    public static void dropCollection(MongoClient client, String databaseName, String collectionName) {
+        MongoCollection<Document> collection = getCollection(client, databaseName, collectionName);
+        collection.drop();
+
+        logger.info("dropping collection {}.{}", databaseName, collectionName);
+    }
 }

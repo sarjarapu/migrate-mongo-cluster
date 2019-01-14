@@ -7,29 +7,38 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  *
- * File: OplogTimestampTracker
+ * File: OplogTimestampReader
  * Author: Shyam Arjarapu
- * Date: 1/12/19 9:45 AM
+ * Date: 1/13/19 7:20 PM
  * Description:
  *
- * A class representing a tracker for oplog resource.
- * It helps you track the latest timestamp on migrator
+ * A class to help read the latest timestamp from oplog.rs
  *
  */
-public class OplogTimestampTracker extends WritableDataTracker {
-    final static Logger logger = LoggerFactory.getLogger(OplogTimestampTracker.class);
+public class OplogTimestampReader extends ReadOnlyDataTracker {
+    final static Logger logger = LoggerFactory.getLogger(OplogTimestampReader.class);
+
+    /**
+     * @param client a MongoDB client object to work with collections
+     * @param resource a resource representing the collection in a database
+     * @param reader a string representation of the current reader / migrator name
+     */
+    public OplogTimestampReader(MongoClient client, Resource resource, String reader) {
+        super(client, resource, reader, "ts");
+    }
 
     /**
      * @param reader a string representation of the current reader / migrator name
      * @param client a MongoDB client object to work with collections
-     * @param resource a resource representing the collection in a database
      */
-    public OplogTimestampTracker(String reader, MongoClient client, Resource resource) {
-        super(client, resource, reader, "ts");
+    public OplogTimestampReader(String reader, MongoClient client) {
+        this(client, new Resource("local", "oplog.rs"), reader);
     }
-
 
     /**
      * Get's the document representing the find query for collection
@@ -39,19 +48,7 @@ public class OplogTimestampTracker extends WritableDataTracker {
      */
     @Override
     protected Document getQueryDocument() {
-        return new Document("reader", reader);
-    }
-
-    /**
-     * Get's the document representing the update command
-     *
-     * @param latestDocument a document holding the _id of latest document for current resource
-     * @return the document representation of the update $set
-     * @see Document
-     */
-    @Override
-    protected Document getUpdateDocument(Document latestDocument) {
-        return new Document("$set", new Document(trackerKey, latestDocument.get("ts")));
+        return new Document();
     }
 
     /**

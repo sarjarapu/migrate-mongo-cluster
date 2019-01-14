@@ -17,10 +17,12 @@ import com.mongodb.migratecluster.commandline.ApplicationOptions;
  */
 public abstract class BaseMigrator {
 
+    protected final String migratorName;
     protected ApplicationOptions options;
 
     protected BaseMigrator(ApplicationOptions options) {
         this.options = options;
+        this.migratorName = options.getSourceCluster();
     }
 
     /**

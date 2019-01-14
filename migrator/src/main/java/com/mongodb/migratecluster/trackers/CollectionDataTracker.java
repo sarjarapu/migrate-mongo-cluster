@@ -20,17 +20,16 @@ import java.util.List;
  * It helps you track the latest document in a collection
  *
  */
-public class CollectionDataTracker extends DataTracker {
+public class CollectionDataTracker extends WritableDataTracker {
     final static Logger logger = LoggerFactory.getLogger(CollectionDataTracker.class);
 
     /**
-     * @param reader a string representation of the current reader / migrator name
      * @param client a MongoDB client object to work with collections
+     * @param reader a string representation of the current reader / migrator name
      * @param resource a resource representing the collection in a database
      */
-    public CollectionDataTracker(String reader, MongoClient client, Resource resource) {
-        super(resource, "migrate-mongo", "collections",
-                client, reader, "latest_id");
+    public CollectionDataTracker(MongoClient client, Resource resource, String reader) {
+        super(client, resource, reader, "latest_id");
     }
 
     /**
