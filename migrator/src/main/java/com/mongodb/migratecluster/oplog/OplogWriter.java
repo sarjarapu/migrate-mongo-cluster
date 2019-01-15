@@ -5,11 +5,14 @@ import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.trackers.OplogTimestampTracker;
 import com.mongodb.migratecluster.trackers.WritableDataTracker;
+import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +49,8 @@ public class OplogWriter {
      * @param operations a list of oplog operation documents
      * @throws AppException
      */
-    public void applyOperations(List<Document> operations) throws AppException {
+    public int applyOperations(List<Document> operations) throws AppException {
+        int totalModelsAdded = 0;
         String previousNamespace = null;
         Document previousDocument = null;
         List<WriteModel<Document>> models = new ArrayList<>();
@@ -56,9 +60,10 @@ public class OplogWriter {
             String currentNamespace = currentDocument.getString("ns");
 
             if (!currentNamespace.equals(previousNamespace)) {
-                // change of namespace. bulk apply models if not empty
-                if (models.size() > 0) {
-                    applyBulkWriteModelsOnCollection(previousNamespace, models);
+                // change of namespace. bulk apply models for previous namespace
+                if (previousNamespace != null && models.size() > 0) {
+                    BulkWriteResult bulkWriteResult = applyBulkWriteModelsOnCollection(previousNamespace, models);
+                    totalModelsAdded += bulkWriteResult.getDeletedCount() + bulkWriteResult.getModifiedCount() + bulkWriteResult.getInsertedCount();
                     models.clear();
                     // save documents timestamp to oplog tracker
                     saveTimestampToOplogStore(previousDocument);
@@ -70,20 +75,35 @@ public class OplogWriter {
             if (model != null) {
                 models.add(model);
             }
+            else {
+                logger.error("=====> could not convert the document to model.");
+            }
         }
 
         if (models.size() > 0) {
-            applyBulkWriteModelsOnCollection(previousNamespace, models);
+            BulkWriteResult bulkWriteResult = applyBulkWriteModelsOnCollection(previousNamespace, models);
+            totalModelsAdded += bulkWriteResult.getDeletedCount() + bulkWriteResult.getModifiedCount() + bulkWriteResult.getInsertedCount();
+
             // save documents timestamp to oplog tracker
             saveTimestampToOplogStore(previousDocument);
         }
+
+        if (totalModelsAdded != operations.size()) {
+            logger.error("total models added {} is not equal to operations injected {}", totalModelsAdded, operations.size());
+        }
+
+        return totalModelsAdded;
     }
 
     private BulkWriteResult applyBulkWriteModelsOnCollection(String namespace,
                                  List<WriteModel<Document>> operations)  throws AppException {
         MongoCollection<Document> collection = MongoDBHelper.getCollectionByNamespace(this.targetClient, namespace);
         BulkWriteResult writeResult = MongoDBHelper.performOperationWithRetry(
-                () -> collection.bulkWrite(operations)
+                () -> {
+                    BulkWriteOptions options = new BulkWriteOptions();
+                    options.ordered(false);
+                    return collection.bulkWrite(operations, options);
+                }
                 , new Document("operation", "bulkWrite"));
         return writeResult;
     }
@@ -139,13 +159,14 @@ public class OplogWriter {
         Document find = operation.get("o", Document.class);
         return new DeleteOneModel<>(find);
     }
-//
+
 //    public void applyOperation(Document operation) throws AppException {
 //        // wait once for write operations if no primary
 //        identifyAndPerformOperation(operation);
 //
 //        // update the lastOplogTimestamp entry in  'migrate-mongo.oplog.tracker' collection
 //        updateLastOplogTimestamp(operation);
+//        // saveTimestampToOplogStore(operation);
 //    }
 //
 //    private void identifyAndPerformOperation(Document operation) throws AppException {

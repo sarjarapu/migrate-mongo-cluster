@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * File: OplogGapWatcher
- * Author: shyam.arjarapu
+ * Author: Shyam Arjarapu
  * Date: 6/7/17 1:03 PM
  * Description: Get the latest oplog time from source replica set,
  * oplogStore replica set and publishes the time gap between them

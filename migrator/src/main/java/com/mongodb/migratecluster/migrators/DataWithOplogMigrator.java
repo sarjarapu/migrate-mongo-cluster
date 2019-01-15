@@ -13,13 +13,13 @@ import com.mongodb.migratecluster.commandline.ApplicationOptions;
  */
 public class DataWithOplogMigrator extends BaseMigrator {
 
-//    private final CollectionDataMigrator dataMigrator;
+    private final CollectionDataMigrator dataMigrator;
     private final OplogMigrator oplogMigrator;
 
     public DataWithOplogMigrator(ApplicationOptions options) {
         super(options);
 
-//        dataMigrator = new CollectionDataMigrator(options);
+        dataMigrator = new CollectionDataMigrator(options);
         oplogMigrator = new OplogMigrator(options);
     }
 
@@ -29,7 +29,7 @@ public class DataWithOplogMigrator extends BaseMigrator {
     @Override
     public void preprocess() {
         oplogMigrator.preprocess();
-//        dataMigrator.preprocess();
+        dataMigrator.preprocess();
     }
 
     /**
@@ -42,11 +42,7 @@ public class DataWithOplogMigrator extends BaseMigrator {
      */
     @Override
     public void process() throws AppException {
-        // TODO:
-        // if not already exists track the oplog / shard
-        // move all the data from source to target
-        // once that is complete apply oplog entries
-//        dataMigrator.process();
+        dataMigrator.process();
         oplogMigrator.process();
     }
 }

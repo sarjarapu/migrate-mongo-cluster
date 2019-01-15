@@ -10,6 +10,8 @@ import io.reactivex.Observable;
 import io.reactivex.Observer;
 import org.bson.BsonTimestamp;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +28,8 @@ import java.util.List;
 public class OplogReader extends Observable<Document> {
     private final MongoClient client;
     private final BsonTimestamp lastTimeStamp;
+
+    final static Logger logger = LoggerFactory.getLogger(OplogReader.class);
 
     public OplogReader(MongoClient client, BsonTimestamp lastTimeStamp) {
         this.client = client;
@@ -51,6 +55,7 @@ public class OplogReader extends Observable<Document> {
 
         while (cursor.hasNext()){
             Document document = cursor.next();
+            logger.info("Reading a document with ts {}", document.get("ts"));
             observer.onNext(document);
         }
     }

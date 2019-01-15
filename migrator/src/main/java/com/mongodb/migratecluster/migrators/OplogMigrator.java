@@ -5,6 +5,7 @@ import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
+import com.mongodb.migratecluster.observables.OplogBufferedReader;
 import com.mongodb.migratecluster.oplog.OplogGapWatcher;
 import com.mongodb.migratecluster.oplog.OplogReader;
 import com.mongodb.migratecluster.oplog.OplogWriter;
@@ -14,6 +15,8 @@ import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * File: OplogMigrator
@@ -156,12 +159,10 @@ public class OplogMigrator extends BaseMigrator {
         MongoClient sourceClient = getSourceClient();
         MongoClient targetClient = getTargetClient();
         MongoClient oplogStoreClient = getOplogClient();
-        OplogReader reader = new OplogReader(sourceClient, lastTimestamp);
+        OplogBufferedReader reader = new OplogBufferedReader(sourceClient, lastTimestamp);
         OplogWriter writer = new OplogWriter(targetClient, oplogStoreClient, this.migratorName);
 
-        // TODO: create new observable that is either buffer by count or time
         reader
-            .buffer(1000)
             .subscribe(ops -> writer.applyOperations(ops));
     }
 

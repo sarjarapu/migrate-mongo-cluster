@@ -6,8 +6,11 @@ import com.mongodb.migratecluster.commandline.ApplicationOptionsLoader;
 import com.mongodb.migratecluster.commandline.InputArgsParser;
 import com.mongodb.migratecluster.migrators.BaseMigrator;
 import com.mongodb.migratecluster.migrators.DataWithOplogMigrator;
+import com.mongodb.migratecluster.utils.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * File: Application
@@ -32,7 +35,7 @@ public class Application {
      *
      * @param args command line arguments
      */
-    private void run(String[] args){
+    private void run(String[] args) {
         ApplicationOptions options = getApplicationOptions(args);
         BaseMigrator migrator = new DataWithOplogMigrator(options);
         try {
