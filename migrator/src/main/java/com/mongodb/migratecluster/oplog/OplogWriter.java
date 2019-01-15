@@ -101,7 +101,7 @@ public class OplogWriter {
         BulkWriteResult writeResult = MongoDBHelper.performOperationWithRetry(
                 () -> {
                     BulkWriteOptions options = new BulkWriteOptions();
-                    options.ordered(false);
+                    options.ordered(true);
                     return collection.bulkWrite(operations, options);
                 }
                 , new Document("operation", "bulkWrite"));
@@ -160,85 +160,6 @@ public class OplogWriter {
         return new DeleteOneModel<>(find);
     }
 
-//    public void applyOperation(Document operation) throws AppException {
-//        // wait once for write operations if no primary
-//        identifyAndPerformOperation(operation);
-//
-//        // update the lastOplogTimestamp entry in  'migrate-mongo.oplog.tracker' collection
-//        updateLastOplogTimestamp(operation);
-//        // saveTimestampToOplogStore(operation);
-//    }
-//
-//    private void identifyAndPerformOperation(Document operation) throws AppException {
-//        String message;
-//        switch (operation.getString("op")){
-//                case "i":
-//                    performInsert(operation);
-//                    break;
-//                case "u":
-//                    performUpdate(operation);
-//                    break;
-//                case "d":
-//                    performDelete(operation);
-//                    break;
-//                case "c":
-//                    performRunCommand(operation);
-//                    break;
-//                case "n":
-//                    // no op; do nothing, just eat it
-//                    break;
-//                default:
-//                    message = String.format("unsupported operation %s; op: %s", operation.getString("op"), operation.toJson());
-//                    logger.error(message);
-//                    throw new AppException(message);
-//            }
-//    }
-//
-//    private void performInsert(Document operation) throws AppException {
-//        Document document = operation.get("o", Document.class);
-//        String ns = operation.getString("ns");
-//
-//        MongoCollection<Document> collection = MongoDBHelper.getCollectionByNamespace(this.targetClient, ns);
-//        MongoDBHelper.performOperationWithRetry(() -> {
-//            collection.insertOne(document);
-//            return 1L;
-//        }, operation);
-//
-//        String message = String.format("completed insert op on namespace: %s; document: %s", ns, operation.toJson());
-//        logger.debug(message);
-//    }
-//
-//    private void performUpdate(Document operation) throws AppException {
-//        Document find = operation.get("o2", Document.class);
-//        Document update = operation.get("o", Document.class);
-//        String ns = operation.getString("ns");
-//
-//        // what about the options?
-//        MongoCollection<Document> collection = MongoDBHelper.getCollectionByNamespace(this.targetClient, ns);
-//        MongoDBHelper.performOperationWithRetry(() -> {
-//            UpdateResult result = collection.updateOne(find, update);
-//            return result.getModifiedCount();
-//        }, operation);
-//
-//        String message = String.format("completed update op on namespace: %s; document: %s", ns, operation.toJson());
-//        logger.debug(message);
-//    }
-//
-//    private void performDelete(Document operation) throws AppException {
-//        Document find = operation.get("o", Document.class);
-//        String ns = operation.getString("ns");
-//
-//        // what about the options?
-//        MongoCollection<Document> collection = MongoDBHelper.getCollectionByNamespace(this.targetClient, ns);
-//        MongoDBHelper.performOperationWithRetry(() -> {
-//            DeleteResult result = collection.deleteOne(find);
-//            return result.getDeletedCount();
-//        }, operation);
-//
-//        String message = String.format("completed delete op on namespace: %s; document: %s", ns, operation.toJson());
-//        logger.debug(message);
-//    }
-
     private void performRunCommand(Document operation) throws AppException {
         Document document = operation.get("o", Document.class);
         String databaseName = operation.getString("ns").replace(".$cmd", "");
@@ -262,22 +183,4 @@ public class OplogWriter {
         WritableDataTracker tracker = new OplogTimestampTracker(oplogStoreClient, oplogTrackerResource, this.reader);
         tracker.updateLatestDocument(document);
     }
-//
-//    private void updateLastOplogTimestamp(Document operation) throws AppException {
-//        //update back the entry on the oplog tracker
-//        Document find = new Document("reader", this.reader);
-//        BsonTimestamp timestamp = operation.get("ts", BsonTimestamp.class);
-//        Document update = new Document("$set", new Document("ts", timestamp));
-//        UpdateOptions options = new UpdateOptions().upsert(true);
-//
-//        MongoCollection<Document> collection = MongoDBHelper.getCollection(oplogStoreClient,
-//                "migrate-mongo", "oplog.tracker");
-//        MongoDBHelper.performOperationWithRetry(() -> {
-//            UpdateResult result = collection.updateOne(find, update, options);
-//            return result.getModifiedCount();
-//        }, operation);
-//
-//        String message = String.format("updating the oplogStore > migrate-mongo.oplog.tracker with op.ts: [%s]", timestamp);
-//        logger.debug(message);
-//    }
 }

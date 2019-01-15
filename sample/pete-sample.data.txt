@@ -16,7 +16,7 @@ for (a=2100; a < 2150; a++) {
     for (d=1; d <= a; d++) {
         var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-15T03:00:00Z"), somedata: "realtime Junk" };
         // batch.push(item);
-        db.deviceState.insert(batch);
+        db.deviceState.insert(item);
     }
     // db.deviceState.insertMany(batch);
 }

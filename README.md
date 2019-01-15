@@ -14,9 +14,69 @@ Ideally, one should be using a backup of existing database, restore it to the se
 
 ## Assumptions
 
-### Target shard keys are precreated
+### Indexes needs to be precreated
 
-While migrating the data from source to target, it is assumed that new shard key of your interest is precreated at target before beginning the migration
+While migrating the data from source to target, it is assumed that all the indexes of your interest are precreated on target before beginning the migration
+
+### Script to precreate collections and indexes
+
+You may use the below script to help generate code for creating the collections and the indexes for target. 
+
+- Open the MongoDB shell connected to the source
+- Copy paste the script (below) in the MongoDB shell
+- The script generates the commands that you need to run on Targer
+- Copy the generated scripts
+- Open the MongoDB shell connected to the target
+- Paste / run the previously generated scripts
+
+```js
+/*
+Author: Shyam Arjarapu
+Description: Generate create collection and index scripts for every collection in every database
+*/
+
+var collections = [];
+db.getMongo().getDBs().databases.forEach(function(databaseMeta){
+    if (databaseMeta.name == 'admin' || databaseMeta.name == 'local' || databaseMeta.name == 'config')
+    return;
+	var database = db.getSiblingDB(databaseMeta.name);
+	database.getCollectionInfos().forEach(function(collectionInfo){
+        var collection = {
+            name: collectionInfo.name,
+            database: databaseMeta.name,
+            options: collectionInfo.options
+        };
+		collections.push(collection);
+        var ignoreKeys = [ "v", "key", "name", "ns" ];
+        var indexes = database.getCollection(collection.name)
+            .getIndexes()
+            .map( function(item) {
+                var index = {
+                    key: item.key,
+                    name: item.name
+                };
+                var options = {};
+                Object.keys(item).filter(key => !Array.contains(ignoreKeys, key)).forEach(key => options[key] = item[key]);
+                if (Object.keys(options).length > 0) {
+                    index.options = options;
+                }
+                return index;
+            });
+        collection.indexes = indexes;
+	});
+});
+var collectionStrings = collections.map(function(collection){
+    return `db.getSiblingDB('${collection.database}').createCollection('${collection.name}', ${JSON.stringify(collection.options)})`;
+}).join("\n");
+var indexStrings = collections.map(function(collection){
+    return collection.indexes.map(function(index){
+        var optionsJSON = index.options ? `, ${JSON.stringify(index.options)}` : '';
+        return `db.getSiblingDB('${collection.database}').getCollection('${collection.name}').createIndex(${JSON.stringify(index.key)} ${optionsJSON});`
+    }).join("\n");
+}).join("\n");
+print(collectionStrings + "\n" + indexStrings);
+
+```
 
 ## How to run the application
 
@@ -76,7 +136,7 @@ Below are the list of features that I thought of incorporating into the applicat
 - [ ] Runtime injection of the log level
 - [x] While copying find the id and continue where you left off
 - [ ] Move the gapWatcher out of the oplogMigrator
-- [ ] Apply the oplogs in bulk operations
+- [x] Apply the oplogs in bulk operations
 - [ ] Use the readPreference on collection vs on client
 
 

@@ -54,9 +54,7 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
                                 MongoCollection<Document> collection = getMongoCollection();
                                 Document operation = new Document("operation", "insertMany");
                                 MongoDBHelper.performOperationWithRetry(() -> {
-                                    InsertManyOptions options = new InsertManyOptions();
-                                    options.ordered(false);
-                                    collection.insertMany(documents, options);
+                                    collection.insertMany(documents);
                                     return documents.size();
                                 }, operation);
 
