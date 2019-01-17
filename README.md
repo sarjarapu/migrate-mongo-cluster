@@ -10,13 +10,24 @@ From technical stand point of view, the application reads data document by docum
 
 ## Word of caution
 
-Ideally, one should be using a backup of existing database, restore it to the server were you wanted to migrate, let the oplog catchup and re-elect the new server as primary. If for whatever reason, you cannot acheive the above recommended approach, you may use this application to do the migration, at your own risk.
+Ideally, one should be using a backup of existing database, restore it to the server were you wanted to migrate, let the oplog catchup and re-elect the new server as primary. If for whatever reason, you cannot acheive the above recommended approach, you may use this application to do the migration, **at your own risk!**
 
 ## Assumptions
 
-### Indexes needs to be precreated
+### Disable the balancer during the migration process
 
-While migrating the data from source to target, it is assumed that all the indexes of your interest are precreated on target before beginning the migration
+If you are on shareded cluser, please make sure to [disable the balancer](https://docs.mongodb.com/manual/tutorial/manage-sharded-cluster-balancer/#sharding-balancing-disable-temporarily) for the entire duration of the migation. 
+
+### OplogSize is big enough to hold entries for the entire duration
+
+This application records the recent oplog entry on the replica set at the time of first run (or everytime if `drop` option is set). Once the application copies all the data from source onto the target, it tails the source oplog from the recorded oplog timestamp. For the migration process to successfully complete, it's crucial to have oplog big enough to accomidate the operations for the anticipated duration of the process. Please refer to the MongoDB documentation, [Change the Size of the Oplog](https://docs.mongodb.com/manual/tutorial/change-oplog-size/index.html) to an appropriate value.
+
+
+### Collections, Indexes and Users needs to be precreated
+
+While migrating the data from source to target, it is assumed that all the indexes of your interest are precreated on target before beginning the migration. 
+
+If you are planning to change the shard key then the application assumes that you configured the sharded collections accordingly.
 
 ### Script to precreate collections and indexes
 
