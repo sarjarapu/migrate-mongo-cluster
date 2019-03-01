@@ -133,6 +133,9 @@ public class CollectionDataMigrator extends BaseMigrator {
      *
      */
     private void saveLastDocumentInBatch(MongoClient client, DocumentsBatch batch) {
+        if (batch.getSize() == 0) {
+            return ;
+        }
         Document document = batch.getDocuments().get(batch.getSize()-1);
         logger.info("Saving Batch {}. lastDocumentId [{}]", batch.toString(), document.get("_id"));
 

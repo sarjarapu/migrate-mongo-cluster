@@ -149,7 +149,10 @@ Below are the list of features that I thought of incorporating into the applicat
 - [ ] Move the gapWatcher out of the oplogMigrator
 - [x] Apply the oplogs in bulk operations
 - [ ] Use the readPreference on collection vs on client
-
+- [ ] Add [backpressure](https://vlkan.com/blog/post/2016/07/20/rxjava-backpressure/) feature
+- [ ] [SyncOnSubscribe](https://www.littlerobots.nl/blog/Note-to-self-RxJava-SyncOnSubscribe/)
+- [ ] https://praveer09.github.io/technology/2016/02/29/rxjava-part-3-multithreading/
+- [ ] https://blog.gojekengineering.com/multi-threading-like-a-boss-in-android-with-rxjava-2-b8b7cf6eb5e2
 
 ## Random notes
 

@@ -27,6 +27,7 @@ public class DocumentIdReader extends Observable<Object> {
     private final MongoCollection<Document> collection;
     private final Resource resource;
     private final Document readFromDocumentId;
+    private final int BATCH_SIZE_ID_READER = 10; // 5000
 
     /**
      * @param collection
@@ -48,7 +49,7 @@ public class DocumentIdReader extends Observable<Object> {
                 .find()
                 .projection(BsonDocument.parse("{_id: 1}"))
                 .sort(BsonDocument.parse("{$natural: 1}"))
-                .batchSize(5000);
+                .batchSize(BATCH_SIZE_ID_READER);
 
         boolean readFromNowOn = true;
 
@@ -61,8 +62,8 @@ public class DocumentIdReader extends Observable<Object> {
             if (!item.isEmpty()) {
                 // TODO: Turn on the throttling here
                 if (readFromNowOn) {
-                    String message = String.format("reading document by _id: [%s]", item.get("_id").toString());
-                    logger.debug(message);
+                    String message = String.format("idReader reading document by _id: [%s]", item.get("_id").toString());
+                    logger.info(message);
                     observer.onNext(item.get("_id"));
                 }
                 else {

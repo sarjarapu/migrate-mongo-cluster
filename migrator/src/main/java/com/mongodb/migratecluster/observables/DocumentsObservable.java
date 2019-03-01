@@ -42,6 +42,8 @@ public class DocumentsObservable extends Observable<DocumentsBatch> {
         List<Document> documents = getDocumentsFromDB();
 
         String message = String.format("read %s full documents based on given _id's. ", documents.size());
+        //TODO: Remove below line
+        message = String.format("read %s full documents based on given _id's. ", String.join(",",documents.stream().map(x -> x.get("_id").toString()).toArray(String[]::new)));
         logger.info(message);
 
         DocumentsBatch batch = new DocumentsBatch(resource, batchId, documents);

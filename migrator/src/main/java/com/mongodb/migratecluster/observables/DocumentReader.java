@@ -7,6 +7,7 @@ import com.mongodb.migratecluster.model.DocumentsBatch;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
     private final Resource resource;
     private final Document readFromDocumentId;
     private  MongoCollection<Document> collection;
+    private final int BATCH_SIZE_DOC_READER = 5; //1000
 
 
     public DocumentReader(MongoClient client, Resource resource, Document readFromDocumentId) {
@@ -46,21 +48,35 @@ public class DocumentReader extends Observable<DocumentsBatch> {
 
         // fetch the ids and do bulk read of 1000 docs at a time
         observable
-                .buffer(1000)
+                .subscribeOn(Schedulers.io())
+                .buffer(BATCH_SIZE_DOC_READER)
+                .observeOn(Schedulers.io())
                 .flatMap(new Function<List<Object>, Observable<DocumentsBatch>>() {
                     @Override
                     public Observable<DocumentsBatch> apply(List<Object> ids) throws Exception {
                         return new DocumentsObservable(collection, getResource(), batchIdTracker.getAndAdd(1), ids.toArray());
                     }
                 })
-                .blockingSubscribe(batch -> {
+                .map(batch -> {
                     logger.info("reader for resource: {} got {} documents; so far read total {} documents in this run.",
                             this.resource.getNamespace(),  batch.getSize(), docsCount.addAndGet(batch.getSize()));
-                    observer.onNext(batch);
-                });
+                    return batch;
+                })
+                .subscribeWith(observer);
+
+//                .subscribe(batch -> {
+//                    logger.info("reader for resource: {} got {} documents; so far read total {} documents in this run.",
+//                            this.resource.getNamespace(),  batch.getSize(), docsCount.addAndGet(batch.getSize()));
+//                    observer.onNext(batch);
+//                }, err -> {
+//                    observer.onError(err);
+//                }, () -> {
+//                    observer.onComplete();
+//                });
+
         // NOTE: by not blocking here, there is possibility of missing last set in the buffer
-        observable.blockingLast();
-        observer.onComplete();
+        // observable.blockingLast();
+        // observer.onComplete();
         logger.info("reader for resource: {} completed. total documents read: {}",
                 this.resource.getNamespace(),  docsCount);
     }
