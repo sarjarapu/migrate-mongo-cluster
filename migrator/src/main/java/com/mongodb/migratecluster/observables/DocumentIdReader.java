@@ -9,7 +9,6 @@ import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -27,7 +26,7 @@ public class DocumentIdReader extends Observable<Object> {
     private final MongoCollection<Document> collection;
     private final Resource resource;
     private final Document readFromDocumentId;
-    private final int BATCH_SIZE_ID_READER = 10; // 5000
+    private final int BATCH_SIZE_ID_READER = 5000; // 5000
 
     /**
      * @param collection
@@ -45,11 +44,7 @@ public class DocumentIdReader extends Observable<Object> {
      */
     @Override
     protected void subscribeActual(Observer<? super Object> observer) {
-        FindIterable<Document> documents = collection
-                .find()
-                .projection(BsonDocument.parse("{_id: 1}"))
-                .sort(BsonDocument.parse("{$natural: 1}"))
-                .batchSize(BATCH_SIZE_ID_READER);
+        FindIterable<Document> documents = getDocuments(this.readFromDocumentId);
 
         boolean readFromNowOn = true;
 
@@ -63,7 +58,7 @@ public class DocumentIdReader extends Observable<Object> {
                 // TODO: Turn on the throttling here
                 if (readFromNowOn) {
                     String message = String.format("idReader reading document by _id: [%s]", item.get("_id").toString());
-                    logger.info(message);
+                    logger.debug(message);
                     observer.onNext(item.get("_id"));
                 }
                 else {
@@ -77,5 +72,14 @@ public class DocumentIdReader extends Observable<Object> {
             }
         }
         observer.onComplete();
+    }
+
+    private FindIterable<Document> getDocuments(Document idValue) {
+        FindIterable<Document> iterable = collection
+                .find()
+                .projection(BsonDocument.parse("{_id: 1}"))
+                .sort(BsonDocument.parse("{$natural: 1}"))
+                .batchSize(BATCH_SIZE_ID_READER);
+        return iterable;
     }
 }

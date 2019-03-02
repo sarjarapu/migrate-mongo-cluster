@@ -16,13 +16,17 @@ import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
 import com.mongodb.migratecluster.trackers.CollectionDataTracker;
 import com.mongodb.migratecluster.trackers.ReadOnlyTracker;
 import com.mongodb.migratecluster.trackers.WritableDataTracker;
+import io.reactivex.Observable;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CountedCompleter;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 
 /**
@@ -98,29 +102,43 @@ public class CollectionDataMigrator extends BaseMigrator {
         DatabaseFilterPredicate databasePredicate = new DatabaseFilterPredicate(blacklistFilter);
         CollectionFilterPredicate collectionPredicate = new CollectionFilterPredicate(blacklistFilter);
 
-        new DatabaseFlowable(sourceClient)
+        List<Resource> filteredResources = new DatabaseFlowable(sourceClient)
                 .filter(databasePredicate)
                 .flatMap(db -> {
                     logger.info("found database: {}", db.getString("name"));
                     return new CollectionFlowable(sourceClient, db.getString("name"));
                 })
                 .filter(collectionPredicate)
-                .map(resource -> {
-                    logger.info("found collection {}", resource.getNamespace());
-                    dropTargetCollectionIfRequired(targetClient, resource);
-                    Document latestDocumentId = getLatestDocumentId(oplogClient, resource);
-                    return new DocumentReader(sourceClient, resource, latestDocumentId);
-                })
-                .map(reader -> new DocumentWriter(targetClient, reader))
-                .subscribe(writer -> {
-                    writer
-                        .map((DocumentsBatch batch) -> {
-                            saveLastDocumentInBatch(oplogClient, batch);
-                            return batch;
-                        })
-                        .blockingLast();
-                });
-        
+                .toList()
+                .blockingGet();
+
+        if (filteredResources.size() > 0) {
+            try {
+                CountDownLatch latch = new CountDownLatch(filteredResources.size());
+
+                Observable.fromIterable(filteredResources)
+                    .map(resource -> {
+                        logger.info("found collection {}", resource.getNamespace());
+                        dropTargetCollectionIfRequired(targetClient, resource);
+                        Document latestDocumentId = getLatestDocumentId(oplogClient, resource);
+                        return new DocumentReader(sourceClient, resource, latestDocumentId);
+                    })
+                    .map(reader -> new DocumentWriter(targetClient, reader))
+                    .subscribe(writer -> {
+                        writer
+                            .map((DocumentsBatch batch) -> {
+                                saveLastDocumentInBatch(oplogClient, batch);
+                                return batch;
+                            })
+                            .blockingLast();
+                        latch.countDown();
+                    });
+                latch.await();
+            } catch (InterruptedException e) {
+                logger.error("error while readAndWriteDocuments", e);
+            }
+        }
+
         sourceClient.close();
         targetClient.close();
     }

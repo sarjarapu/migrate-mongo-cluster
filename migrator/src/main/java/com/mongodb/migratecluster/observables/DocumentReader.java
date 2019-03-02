@@ -28,7 +28,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
     private final Resource resource;
     private final Document readFromDocumentId;
     private  MongoCollection<Document> collection;
-    private final int BATCH_SIZE_DOC_READER = 5; //1000
+    private final int BATCH_SIZE_DOC_READER = 1000; //1000
 
 
     public DocumentReader(MongoClient client, Resource resource, Document readFromDocumentId) {
