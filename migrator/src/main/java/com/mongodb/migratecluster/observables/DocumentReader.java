@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -27,6 +28,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
     final static Logger logger = LoggerFactory.getLogger(DocumentReader.class);
     private final Resource resource;
     private final Document readFromDocumentId;
+    private final Semaphore semaphore;
     private  MongoCollection<Document> collection;
     private final int BATCH_SIZE_DOC_READER = 1000; //1000
 
@@ -34,6 +36,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
     public DocumentReader(MongoClient client, Resource resource, Document readFromDocumentId) {
         this.resource = resource;
         this.readFromDocumentId = readFromDocumentId;
+        this.semaphore = new Semaphore(2);;
         this.collection = client.getDatabase(resource.getDatabase()).getCollection(resource.getCollection());
     }
 
@@ -42,7 +45,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
      */
     @Override
     protected void subscribeActual(Observer<? super DocumentsBatch> observer) {
-        Observable<Object> observable = new DocumentIdReader(collection, resource, readFromDocumentId);
+        Observable<Object> observable = new DocumentIdReader(collection, resource, readFromDocumentId, semaphore);
         AtomicInteger docsCount = new AtomicInteger(0);
         AtomicInteger batchIdTracker = new AtomicInteger(0);
 
@@ -64,19 +67,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
                 })
                 .subscribeWith(observer);
 
-//                .subscribe(batch -> {
-//                    logger.info("reader for resource: {} got {} documents; so far read total {} documents in this run.",
-//                            this.resource.getNamespace(),  batch.getSize(), docsCount.addAndGet(batch.getSize()));
-//                    observer.onNext(batch);
-//                }, err -> {
-//                    observer.onError(err);
-//                }, () -> {
-//                    observer.onComplete();
-//                });
 
-        // NOTE: by not blocking here, there is possibility of missing last set in the buffer
-        // observable.blockingLast();
-        // observer.onComplete();
         logger.info("reader for resource: {} completed. total documents read: {}",
                 this.resource.getNamespace(),  docsCount);
     }

@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CountedCompleter;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -116,6 +117,7 @@ public class CollectionDataMigrator extends BaseMigrator {
             try {
                 CountDownLatch latch = new CountDownLatch(filteredResources.size());
 
+                // TODO: You could do multithreading per collection right here
                 Observable.fromIterable(filteredResources)
                     .map(resource -> {
                         logger.info("found collection {}", resource.getNamespace());
@@ -130,7 +132,7 @@ public class CollectionDataMigrator extends BaseMigrator {
                                 saveLastDocumentInBatch(oplogClient, batch);
                                 return batch;
                             })
-                            .blockingLast();
+                            .blockingSubscribe();
                         latch.countDown();
                     });
                 latch.await();

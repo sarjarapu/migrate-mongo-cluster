@@ -2,6 +2,7 @@ package com.mongodb.migratecluster.observables;
 
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
 import com.mongodb.migratecluster.model.Resource;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
@@ -9,6 +10,8 @@ import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -26,17 +29,20 @@ public class DocumentIdReader extends Observable<Object> {
     private final MongoCollection<Document> collection;
     private final Resource resource;
     private final Document readFromDocumentId;
+    private final Semaphore semaphore;
     private final int BATCH_SIZE_ID_READER = 5000; // 5000
-
+    private final int BATCHES_MAX_COUNT = 2;
     /**
      * @param collection
      * @param resource An object representing database and collection that reader will process
      * @param readFromDocumentId A Document representing where to continue reading from given collection
+     * @param semaphore
      */
-    public DocumentIdReader(MongoCollection<Document> collection, Resource resource, Document readFromDocumentId) {
+    public DocumentIdReader(MongoCollection<Document> collection, Resource resource, Document readFromDocumentId, Semaphore semaphore) {
         this.collection = collection;
         this.resource = resource;
         this.readFromDocumentId = readFromDocumentId;
+        this.semaphore = semaphore;
     }
 
     /**
@@ -44,7 +50,7 @@ public class DocumentIdReader extends Observable<Object> {
      */
     @Override
     protected void subscribeActual(Observer<? super Object> observer) {
-        FindIterable<Document> documents = getDocuments(this.readFromDocumentId);
+        FindIterable<Document> documents = getDocumentIdsFrom(this.readFromDocumentId);
 
         boolean readFromNowOn = true;
 
@@ -55,10 +61,10 @@ public class DocumentIdReader extends Observable<Object> {
         AtomicInteger counter = new AtomicInteger(0);
         for (Document item : documents) {
             if (!item.isEmpty()) {
-                // TODO: Turn on the throttling here
                 if (readFromNowOn) {
                     String message = String.format("idReader reading document by _id: [%s]", item.get("_id").toString());
                     logger.debug(message);
+                    // TODO: Turn on the throttling here
                     observer.onNext(item.get("_id"));
                 }
                 else {
@@ -74,11 +80,32 @@ public class DocumentIdReader extends Observable<Object> {
         observer.onComplete();
     }
 
-    private FindIterable<Document> getDocuments(Document idValue) {
+    private FindIterable<Document> getDocumentIdsFrom(Document idValue) {
+        if (idValue != null) {
+            // find the first _id of a few batches prior to given idValue
+            Document idValueFromPriorBatches = collection
+                    .find(Filters.lte("_id", idValue.get("latest_id")))
+                    .sort(BsonDocument.parse("{_id: -1}")) // descending order
+                    .skip(BATCHES_MAX_COUNT * BATCH_SIZE_ID_READER)
+                    .limit(1)
+                    .projection(BsonDocument.parse("{_id: 1}"))
+                    .first();
+
+            if (idValueFromPriorBatches != null) {
+                // get all the docs from that priorBatch idValue
+                FindIterable<Document> iterable = collection
+                        .find(Filters.gte("_id", idValueFromPriorBatches.get("_id")))
+                        .projection(BsonDocument.parse("{_id: 1}"))
+                        .sort(BsonDocument.parse("{_id: 1}"))
+                        .batchSize(BATCH_SIZE_ID_READER);
+                return iterable;
+            }
+        }
+
         FindIterable<Document> iterable = collection
                 .find()
                 .projection(BsonDocument.parse("{_id: 1}"))
-                .sort(BsonDocument.parse("{$natural: 1}"))
+                .sort(BsonDocument.parse("{_id: 1}"))
                 .batchSize(BATCH_SIZE_ID_READER);
         return iterable;
     }

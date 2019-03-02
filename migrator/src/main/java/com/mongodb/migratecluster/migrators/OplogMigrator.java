@@ -7,7 +7,6 @@ import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.observables.OplogBufferedReader;
 import com.mongodb.migratecluster.oplog.OplogGapWatcher;
-import com.mongodb.migratecluster.oplog.OplogReader;
 import com.mongodb.migratecluster.oplog.OplogWriter;
 import com.mongodb.migratecluster.trackers.*;
 import io.reactivex.schedulers.Schedulers;
@@ -15,8 +14,6 @@ import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * File: OplogMigrator

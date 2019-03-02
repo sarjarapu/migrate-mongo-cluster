@@ -150,6 +150,8 @@ Below are the list of features that I thought of incorporating into the applicat
 - [x] Apply the oplogs in bulk operations
 - [ ] Use the readPreference on collection vs on client
 - [ ] How do you track the multi shard -> mongos and last known id (lastknownid should be / rs)
+- [ ] I don't think you are saving the recentDocumentId properly
+- [ ] Target is behind by 446 seconds & 0000 operations; even after completing the transfer
 - [ ] Add [backpressure](https://vlkan.com/blog/post/2016/07/20/rxjava-backpressure/) feature
 - [ ] [SyncOnSubscribe](https://www.littlerobots.nl/blog/Note-to-self-RxJava-SyncOnSubscribe/)
 - [ ] https://praveer09.github.io/technology/2016/02/29/rxjava-part-3-multithreading/

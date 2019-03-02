@@ -2,7 +2,6 @@ package com.mongodb.migratecluster.observables;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.InsertManyOptions;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.model.DocumentsBatch;
@@ -39,9 +38,7 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
     @Override
     protected void subscribeActual(Observer<? super DocumentsBatch> observer) {
         AtomicInteger documentCountTracker = new AtomicInteger(0);
-        //AtomicInteger batchIdTracker = new AtomicInteger(0);
 
-        //Observable<DocumentsBatch> observable = this.documentReader
         this.documentReader
                 .flatMap(new Function<DocumentsBatch, ObservableSource<DocumentsBatch>>() {
                     @Override
@@ -60,8 +57,6 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
                                         return documents.size();
                                     }, operation);
 
-
-                                    // TODO: Update the lastDocument entry in oplog database
                                     String message = String.format("Batch %s. Inserted %d documents into target collection: %s",
                                             batch.getBatchId(), documents.size(), resource.getNamespace());
                                     logger.info(message);
@@ -80,10 +75,6 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
                         observer.onComplete();
                     }
                 );
-
-        // observable.blockingSubscribe();
-        // logger.info("Completed writing {} documents to Resource: {}", documentCountTracker.get(), this.resource);
-        // observer.onComplete();
     }
 
     private MongoCollection<Document> getMongoCollection() {
