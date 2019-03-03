@@ -25,10 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CountedCompleter;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 
 /**
@@ -99,21 +96,7 @@ public class CollectionDataMigrator extends BaseMigrator {
     private void readAndWriteDocuments(MongoClient sourceClient,
                                        MongoClient targetClient,
                                        MongoClient oplogClient) {
-        // load the blacklist filters and create database and collection predicates
-        List<ResourceFilter> blacklistFilter = options.getBlackListFilter();
-        DatabaseFilterPredicate databasePredicate = new DatabaseFilterPredicate(blacklistFilter);
-        CollectionFilterPredicate collectionPredicate = new CollectionFilterPredicate(blacklistFilter);
-
-        List<Resource> filteredResources = new DatabaseFlowable(sourceClient)
-                .filter(databasePredicate)
-                .flatMap(db -> {
-                    logger.info("found database: {}", db.getString("name"));
-                    return new CollectionFlowable(sourceClient, db.getString("name"));
-                })
-                .filter(collectionPredicate)
-                .toList()
-                .blockingGet();
-
+        List<Resource> filteredResources = getFilteredResources(sourceClient);
         if (filteredResources.size() > 0) {
             try {
                 CountDownLatch latch = new CountDownLatch(filteredResources.size());
@@ -146,6 +129,23 @@ public class CollectionDataMigrator extends BaseMigrator {
 
         sourceClient.close();
         targetClient.close();
+    }
+
+    private List<Resource> getFilteredResources(MongoClient sourceClient) {
+        // load the blacklist filters and create database and collection predicates
+        List<ResourceFilter> blacklistFilter = options.getBlackListFilter();
+        DatabaseFilterPredicate databasePredicate = new DatabaseFilterPredicate(blacklistFilter);
+        CollectionFilterPredicate collectionPredicate = new CollectionFilterPredicate(blacklistFilter);
+
+        return new DatabaseFlowable(sourceClient)
+                .filter(databasePredicate)
+                .flatMap(db -> {
+                    logger.info("found database: {}", db.getString("name"));
+                    return new CollectionFlowable(sourceClient, db.getString("name"));
+                })
+                .filter(collectionPredicate)
+                .toList()
+                .blockingGet();
     }
 
     /**

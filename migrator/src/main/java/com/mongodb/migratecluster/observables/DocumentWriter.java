@@ -63,6 +63,7 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
                                     documentCountTracker.addAndGet(documents.size());
 
                                     observer.onNext(batch);
+                                    documentReader.releaseThrottler();
                                     return batch;
                                 });
                     }

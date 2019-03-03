@@ -11,7 +11,6 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -29,20 +28,17 @@ public class DocumentIdReader extends Observable<Object> {
     private final MongoCollection<Document> collection;
     private final Resource resource;
     private final Document readFromDocumentId;
-    private final Semaphore semaphore;
     private final int BATCH_SIZE_ID_READER = 5000; // 5000
     private final int BATCHES_MAX_COUNT = 2;
     /**
      * @param collection
      * @param resource An object representing database and collection that reader will process
      * @param readFromDocumentId A Document representing where to continue reading from given collection
-     * @param semaphore
      */
-    public DocumentIdReader(MongoCollection<Document> collection, Resource resource, Document readFromDocumentId, Semaphore semaphore) {
+    public DocumentIdReader(MongoCollection<Document> collection, Resource resource, Document readFromDocumentId) {
         this.collection = collection;
         this.resource = resource;
         this.readFromDocumentId = readFromDocumentId;
-        this.semaphore = semaphore;
     }
 
     /**
@@ -64,7 +60,6 @@ public class DocumentIdReader extends Observable<Object> {
                 if (readFromNowOn) {
                     String message = String.format("idReader reading document by _id: [%s]", item.get("_id").toString());
                     logger.debug(message);
-                    // TODO: Turn on the throttling here
                     observer.onNext(item.get("_id"));
                 }
                 else {

@@ -15,6 +15,8 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
  * File: OplogMigrator
  * Author: Shyam Arjarapu
@@ -157,7 +159,7 @@ public class OplogMigrator extends BaseMigrator {
         MongoClient targetClient = getTargetClient();
         MongoClient oplogStoreClient = getOplogClient();
         OplogBufferedReader reader = new OplogBufferedReader(sourceClient, lastTimestamp);
-        OplogWriter writer = new OplogWriter(targetClient, oplogStoreClient, this.migratorName);
+        OplogWriter writer = new OplogWriter(targetClient, oplogStoreClient, this.migratorName, this.options);
 
         reader
             .subscribe(ops -> writer.applyOperations(ops));

@@ -23,6 +23,31 @@ for (a=1001; a < 1200; a++) {
 keyhole --seed --file template.json --collection exampleColl --total 500000000  "mongodb://localhost:18000,localhost:18001,localhost:18002/exampledb?replicaSet=replset"
 
 
+/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath source-cluster/data/replset/rs0/db --logpath source-cluster/data/replset/rs0/mongod.log --port 18000 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath source-cluster/data/replset/rs1/db --logpath source-cluster/data/replset/rs1/mongod.log --port 18001 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath source-cluster/data/replset/rs2/db --logpath source-cluster/data/replset/rs2/mongod.log --port 18002 --bind_ip 0.0.0.0 --logappend --fork
+
+/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath target-cluster/data/replset/rs0/db --logpath target-cluster/data/replset/rs0/mongod.log --port 18100 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath target-cluster/data/replset/rs1/db --logpath target-cluster/data/replset/rs1/mongod.log --port 18101 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath target-cluster/data/replset/rs2/db --logpath target-cluster/data/replset/rs2/mongod.log --port 18102 --bind_ip 0.0.0.0 --logappend --fork
+
+/opt/mongodb/v3.4.18/bin/mongod --replSet rsOplog --dbpath oplog-store/data/rsOplog/rs0/db --logpath oplog-store/data/rsOplog/rs0/mongod.log --port 18200 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --replSet rsOplog --dbpath oplog-store/data/rsOplog/rs1/db --logpath oplog-store/data/rsOplog/rs1/mongod.log --port 18201 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --replSet rsOplog --dbpath oplog-store/data/rsOplog/rs2/db --logpath oplog-store/data/rsOplog/rs2/mongod.log --port 18202 --bind_ip 0.0.0.0 --logappend --fork
+
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18100
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18101
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18102
+
+// slow add of data
+while(true) {
+    sleep(1000);
+    var index = parseInt(Math.random()*5)+1;
+    db.getCollection('deviceState' + index).insert({fname: 'fname'+index});
+}
+
+
+
 data = db.deviceState.find().toArray();
 
 for (var i = 0; i < data.length; i++) {

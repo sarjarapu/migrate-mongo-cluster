@@ -142,21 +142,17 @@ Below are the list of features that I thought of incorporating into the applicat
 - [x] Use connection string with all the members in replicaset
 - [x] Retry logic when the primary is down
 - [x] Read preference - secondary from source?
+- [x] While copying find the id and continue where you left off
+- [x] Apply the oplogs in bulk operations
+- [x] Make OplogWriter skip the blacklisted databases / collections
 - [ ] Status Database to keep track of progress
 - [ ] API to expose status of migrators from database
 - [ ] Runtime injection of the log level
-- [x] While copying find the id and continue where you left off
 - [ ] Move the gapWatcher out of the oplogMigrator
-- [x] Apply the oplogs in bulk operations
 - [ ] Use the readPreference on collection vs on client
 - [ ] How do you track the multi shard -> mongos and last known id (lastknownid should be / rs)
-- [ ] I don't think you are saving the recentDocumentId properly
 - [ ] Target is behind by 446 seconds & 0000 operations; even after completing the transfer
-- [ ] Add [backpressure](https://vlkan.com/blog/post/2016/07/20/rxjava-backpressure/) feature
-- [ ] [SyncOnSubscribe](https://www.littlerobots.nl/blog/Note-to-self-RxJava-SyncOnSubscribe/)
-- [ ] https://praveer09.github.io/technology/2016/02/29/rxjava-part-3-multithreading/
-- [ ] https://blog.gojekengineering.com/multi-threading-like-a-boss-in-android-with-rxjava-2-b8b7cf6eb5e2
 
-## Random notes
+## Future enhancements
 
--  I think oplog tail should make entry if not already exists and start saving tail to oplog tail db this will help in scenarios when source oplog headroom is small compared to time it takes to populate all the historical data. for simplicity i assume oplog is big enough for multiple days if an oplog entry already exists then wait till all the copy process is done begin the oplog tail apply operations only after copy process is completed.
+Saving the oplog tail data help in scenarios when source oplog headroom is small compared to time it takes to populate all the historical data. For now, I assume oplog is big enough for multiple days if an oplog entry already exists then wait till all the copy process is done begin the oplog tail apply operations only after copy process is completed.

@@ -28,16 +28,16 @@ public class DocumentReader extends Observable<DocumentsBatch> {
     final static Logger logger = LoggerFactory.getLogger(DocumentReader.class);
     private final Resource resource;
     private final Document readFromDocumentId;
-    private final Semaphore semaphore;
     private  MongoCollection<Document> collection;
     private final int BATCH_SIZE_DOC_READER = 1000; //1000
+    private final Semaphore throttler;
 
 
     public DocumentReader(MongoClient client, Resource resource, Document readFromDocumentId) {
         this.resource = resource;
         this.readFromDocumentId = readFromDocumentId;
-        this.semaphore = new Semaphore(2);;
         this.collection = client.getDatabase(resource.getDatabase()).getCollection(resource.getCollection());
+        this.throttler = new Semaphore(2);
     }
 
     /**
@@ -45,7 +45,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
      */
     @Override
     protected void subscribeActual(Observer<? super DocumentsBatch> observer) {
-        Observable<Object> observable = new DocumentIdReader(collection, resource, readFromDocumentId, semaphore);
+        Observable<Object> observable = new DocumentIdReader(collection, resource, readFromDocumentId);
         AtomicInteger docsCount = new AtomicInteger(0);
         AtomicInteger batchIdTracker = new AtomicInteger(0);
 
@@ -53,7 +53,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
         observable
                 .subscribeOn(Schedulers.io())
                 .buffer(BATCH_SIZE_DOC_READER)
-                .observeOn(Schedulers.io())
+                // .observeOn(Schedulers.io()) // throttle id reader based on documend reader by using same thread
                 .flatMap(new Function<List<Object>, Observable<DocumentsBatch>>() {
                     @Override
                     public Observable<DocumentsBatch> apply(List<Object> ids) throws Exception {
@@ -61,6 +61,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
                     }
                 })
                 .map(batch -> {
+                    acquireThrottler();
                     logger.info("reader for resource: {} got {} documents; so far read total {} documents in this run.",
                             this.resource.getNamespace(),  batch.getSize(), docsCount.addAndGet(batch.getSize()));
                     return batch;
@@ -74,5 +75,17 @@ public class DocumentReader extends Observable<DocumentsBatch> {
 
     public Resource getResource() {
         return resource;
+    }
+
+    public void acquireThrottler() throws InterruptedException {
+        logger.info(String.format("Throttler [%d] wait for the consumers to write to db", throttler.availablePermits()));
+        throttler.acquire();
+        logger.info(String.format("Throttler [%d] got the permit for me to produce", throttler.availablePermits()));
+    }
+
+    public void releaseThrottler() {
+        logger.info(String.format("Throttler [%d] done consuming the data. notifying producers", throttler.availablePermits()));
+        throttler.release();
+        logger.info(String.format("Throttler [%d] releasing the permit for producers", throttler.availablePermits()));
     }
 }

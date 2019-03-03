@@ -5,19 +5,21 @@ import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
-import com.mongodb.client.result.DeleteResult;
-import com.mongodb.client.result.UpdateResult;
 import com.mongodb.migratecluster.AppException;
+import com.mongodb.migratecluster.commandline.ApplicationOptions;
+import com.mongodb.migratecluster.commandline.ResourceFilter;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
+import com.mongodb.migratecluster.predicates.CollectionFilterPredicate;
+import com.mongodb.migratecluster.predicates.DatabaseFilterPredicate;
 import com.mongodb.migratecluster.trackers.OplogTimestampTracker;
 import com.mongodb.migratecluster.trackers.WritableDataTracker;
-import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -33,14 +35,22 @@ public class OplogWriter {
     private final MongoClient targetClient;
     private final String reader;
     private final Resource oplogTrackerResource;
+    private final HashMap<String, Boolean> allowedNamespaces;
 
     final static Logger logger = LoggerFactory.getLogger(OplogWriter.class);
+    private final DatabaseFilterPredicate databasePredicate;
+    private final CollectionFilterPredicate collectionPredicate;
 
-    public OplogWriter(MongoClient targetClient, MongoClient oplogStoreClient, String reader) {
+    public OplogWriter(MongoClient targetClient, MongoClient oplogStoreClient, String reader, ApplicationOptions options) {
         this.targetClient = targetClient;
         this.oplogStoreClient = oplogStoreClient;
         this.reader = reader;
         oplogTrackerResource = new Resource("migrate-mongo", "oplog.tracker");
+        allowedNamespaces = new HashMap<>();
+
+        List<ResourceFilter> blacklistFilter = options.getBlackListFilter();
+        databasePredicate = new DatabaseFilterPredicate(blacklistFilter);
+        collectionPredicate = new CollectionFilterPredicate(blacklistFilter);
     }
 
     /**
@@ -51,6 +61,7 @@ public class OplogWriter {
      */
     public int applyOperations(List<Document> operations) throws AppException {
         int totalModelsAdded = 0;
+        int totalValidOperations = 0;
         String previousNamespace = null;
         Document previousDocument = null;
         List<WriteModel<Document>> models = new ArrayList<>();
@@ -59,6 +70,9 @@ public class OplogWriter {
             Document currentDocument = operations.get(i);
             String currentNamespace = currentDocument.getString("ns");
 
+            if (!isNamespaceAllowed(currentNamespace)) {
+                continue;
+            }
             if (!currentNamespace.equals(previousNamespace)) {
                 // change of namespace. bulk apply models for previous namespace
                 if (previousNamespace != null && models.size() > 0) {
@@ -74,9 +88,11 @@ public class OplogWriter {
             WriteModel<Document> model = getWriteModelForOperation(currentDocument);
             if (model != null) {
                 models.add(model);
+                totalValidOperations++;
             }
             else {
-                logger.error("=====> could not convert the document to model.");
+                // if the command is $cmd for create index or create collection, there would not be any write model.
+                logger.info(String.format("could not convert the document to model. Give document is [%s]", currentDocument.toJson()));
             }
         }
 
@@ -89,11 +105,41 @@ public class OplogWriter {
         }
         // TODO: If no data has changed then no documents will be found in the oplog. Check for noop?
 
-        if (totalModelsAdded != operations.size()) {
-            logger.error("total models added {} is not equal to operations injected {}", totalModelsAdded, operations.size());
+        if (totalModelsAdded != totalValidOperations) {
+            logger.warn("total models added {} is not equal to operations injected {}", totalModelsAdded, operations.size());
         }
 
         return totalModelsAdded;
+    }
+
+    private boolean isNamespaceAllowed(String namespace) {
+        if (!allowedNamespaces.containsKey(namespace))
+        {
+            boolean allow = checkIfNamespaceIsAllowed(namespace);
+            allowedNamespaces.put(namespace, allow);
+        }
+        // return cached value
+        return allowedNamespaces.get(namespace);
+    }
+
+    private boolean checkIfNamespaceIsAllowed(String namespace) {
+        String databaseName = namespace.split("\\.")[0];
+        try {
+            Document dbDocument = new Document("name", databaseName);
+            boolean isNotBlacklistedDB = databasePredicate.test(dbDocument);
+            if (isNotBlacklistedDB) {
+                // check for collection as well
+                String collectionName = namespace.substring(databaseName.length()+1);
+                Resource resource = new Resource(databaseName, collectionName);
+                return collectionPredicate.test(resource);
+            }
+            else {
+                return false;
+            }
+        } catch (Exception e) {
+            logger.error("error while testing the namespace is in black list or not");
+            return false;
+        }
     }
 
     private BulkWriteResult applyBulkWriteModelsOnCollection(String namespace,
