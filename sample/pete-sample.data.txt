@@ -6,12 +6,35 @@ for (a=1; a < 2100; a++) {
         var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-11T03:00:00Z"), somedata: "Junk" };
         batch.push(item);
     }
-    db.deviceState2.insertMany(batch);
+    db.deviceState.insertMany(batch);
 }
+// bulk populate to lot more documents
+var a,d;
+for (a=1001; a < 1200; a++) {
+    var bulk = db.deviceState5.initializeUnorderedBulkOp();
+    for (d=1; d <= 100000; d++) {
+        var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-11T03:00:00Z"), somedata: "Junk" };
+        bulk.insert(item);
+    }
+    var bulkResult = bulk.execute();
+    print("done with iteration " + a)
+}
+
+keyhole --seed --file template.json --collection exampleColl --total 500000000  "mongodb://localhost:18000,localhost:18001,localhost:18002/exampledb?replicaSet=replset"
+
+
+data = db.deviceState.find().toArray();
+
+for (var i = 0; i < data.length; i++) {
+    var item = data[i];
+    item._id = new ObjectId();
+    bulk.insert(item);
+}
+var bulkResult = bulk.execute();
 
 // real time update
 var a,d;
-for (a=2300; a < 2350; a++) {
+for (a=2100; a < 2150; a++) {
     var batch = []
     for (d=1; d <= a; d++) {
         var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-15T03:00:00Z"), somedata: "realtime Junk" };

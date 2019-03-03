@@ -17,6 +17,7 @@ import com.mongodb.migratecluster.trackers.CollectionDataTracker;
 import com.mongodb.migratecluster.trackers.ReadOnlyTracker;
 import com.mongodb.migratecluster.trackers.WritableDataTracker;
 import io.reactivex.Observable;
+import io.reactivex.schedulers.Schedulers;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,8 +118,10 @@ public class CollectionDataMigrator extends BaseMigrator {
             try {
                 CountDownLatch latch = new CountDownLatch(filteredResources.size());
 
-                // TODO: You could do multithreading per collection right here
-                Observable.fromIterable(filteredResources)
+                Observable<Resource> resourceObservable = Observable.fromIterable(filteredResources)
+                        .flatMap(r -> Observable.just(r)).subscribeOn(Schedulers.io()); // runs all resources in parallel;
+
+                resourceObservable
                     .map(resource -> {
                         logger.info("found collection {}", resource.getNamespace());
                         dropTargetCollectionIfRequired(targetClient, resource);

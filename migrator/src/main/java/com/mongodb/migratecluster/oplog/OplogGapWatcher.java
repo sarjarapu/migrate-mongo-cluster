@@ -47,8 +47,8 @@ public class OplogGapWatcher  extends Observable<OplogGap> {
         Observable<Long> observable = Observable
                 .timer(5, TimeUnit.SECONDS)
                 .interval(5, TimeUnit.SECONDS)
-                .observeOn(Schedulers.computation())
-                .subscribeOn(Schedulers.newThread());
+                .observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io());
 
         observable.subscribe(time -> {
                 BsonTimestamp sourceTimestamp = getLatestOplogTimestamp(

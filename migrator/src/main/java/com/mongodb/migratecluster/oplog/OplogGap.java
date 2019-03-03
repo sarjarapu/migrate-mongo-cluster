@@ -35,7 +35,7 @@ public class OplogGap {
     }
 
     public long getGapInSeconds() {
-        logger.debug("[NULL ERROR] hoping to see null here; sourceOpTime: {}; targetOpTime: {}", sourceOpTime, targetOpTime);
+        //logger.debug("[NULL ERROR] hoping to see null here; sourceOpTime: {}; targetOpTime: {}", sourceOpTime, targetOpTime);
         return sourceOpTime.getTime() - targetOpTime.getTime();
     }
 

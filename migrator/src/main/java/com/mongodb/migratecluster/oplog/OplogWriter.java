@@ -87,6 +87,7 @@ public class OplogWriter {
             // save documents timestamp to oplog tracker
             saveTimestampToOplogStore(previousDocument);
         }
+        // TODO: If no data has changed then no documents will be found in the oplog. Check for noop?
 
         if (totalModelsAdded != operations.size()) {
             logger.error("total models added {} is not equal to operations injected {}", totalModelsAdded, operations.size());
