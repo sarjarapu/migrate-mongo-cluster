@@ -15,9 +15,9 @@ mkdir source-cluster target-cluster oplog-store
 cd source-cluster
 mkdir -p data/replset/rs{1,2,3}/db 
 sourceBin=/opt/mongodb/v3.4.18/bin
-$sourceBin/mongod --replSet replset --dbpath data/replset/rs1/db --logpath data/replset/rs1/mongod.log --port 18000 --bind_ip 0.0.0.0 --logappend --fork
-$sourceBin/mongod --replSet replset --dbpath data/replset/rs2/db --logpath data/replset/rs2/mongod.log --port 18001 --bind_ip 0.0.0.0 --logappend --fork
-$sourceBin/mongod --replSet replset --dbpath data/replset/rs3/db --logpath data/replset/rs3/mongod.log --port 18002 --bind_ip 0.0.0.0 --logappend --fork
+$sourceBin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath data/replset/rs1/db --logpath data/replset/rs1/mongod.log --port 18000 --bind_ip 0.0.0.0 --logappend --fork
+$sourceBin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath data/replset/rs2/db --logpath data/replset/rs2/mongod.log --port 18001 --bind_ip 0.0.0.0 --logappend --fork
+$sourceBin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath data/replset/rs3/db --logpath data/replset/rs3/mongod.log --port 18002 --bind_ip 0.0.0.0 --logappend --fork
 sleep 5
 # make sure you can ping the servername otherwise add it to /etc/hosts file
 SERVER_NAME=`hostname -f`
@@ -40,9 +40,9 @@ $sourceBin/mongo admin --port 18000 < initiate.js
 cd ../target-cluster
 mkdir -p data/replset/rs{1,2,3}/db 
 targetBin=/opt/mongodb/v3.4.18/bin
-$targetBin/mongod --replSet replset --dbpath data/replset/rs1/db --logpath data/replset/rs1/mongod.log --port 18100 --bind_ip 0.0.0.0 --logappend --fork
-$targetBin/mongod --replSet replset --dbpath data/replset/rs2/db --logpath data/replset/rs2/mongod.log --port 18101 --bind_ip 0.0.0.0 --logappend --fork
-$targetBin/mongod --replSet replset --dbpath data/replset/rs3/db --logpath data/replset/rs3/mongod.log --port 18102 --bind_ip 0.0.0.0 --logappend --fork
+$targetBin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath data/replset/rs1/db --logpath data/replset/rs1/mongod.log --port 18100 --bind_ip 0.0.0.0 --logappend --fork
+$targetBin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath data/replset/rs2/db --logpath data/replset/rs2/mongod.log --port 18101 --bind_ip 0.0.0.0 --logappend --fork
+$targetBin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath data/replset/rs3/db --logpath data/replset/rs3/mongod.log --port 18102 --bind_ip 0.0.0.0 --logappend --fork
 sleep 5
 # make sure you can ping the servername otherwise add it to /etc/hosts file
 SERVER_NAME=`hostname -f`
@@ -67,9 +67,9 @@ $targetBin/mongo admin --port 18100  < initiate.js
 cd ../oplog-store
 mkdir -p data/rsOplog/rs{1,2,3}/db 
 oplogBin=/opt/mongodb/v3.4.18/bin
-$oplogBin/mongod --replSet rsOplog --dbpath data/rsOplog/rs1/db --logpath data/rsOplog/rs1/mongod.log --port 18200 --bind_ip 0.0.0.0 --logappend --fork
-$oplogBin/mongod --replSet rsOplog --dbpath data/rsOplog/rs2/db --logpath data/rsOplog/rs2/mongod.log --port 18201 --bind_ip 0.0.0.0 --logappend --fork
-$oplogBin/mongod --replSet rsOplog --dbpath data/rsOplog/rs3/db --logpath data/rsOplog/rs3/mongod.log --port 18202 --bind_ip 0.0.0.0 --logappend --fork
+$oplogBin/mongod --wiredTigerCacheSizeGB 1 --replSet rsOplog --dbpath data/rsOplog/rs1/db --logpath data/rsOplog/rs1/mongod.log --port 18200 --bind_ip 0.0.0.0 --logappend --fork
+$oplogBin/mongod --wiredTigerCacheSizeGB 1 --replSet rsOplog --dbpath data/rsOplog/rs2/db --logpath data/rsOplog/rs2/mongod.log --port 18201 --bind_ip 0.0.0.0 --logappend --fork
+$oplogBin/mongod --wiredTigerCacheSizeGB 1 --replSet rsOplog --dbpath data/rsOplog/rs3/db --logpath data/rsOplog/rs3/mongod.log --port 18202 --bind_ip 0.0.0.0 --logappend --fork
 sleep 5
 
 # make sure you can ping the servername otherwise add it to /etc/hosts file

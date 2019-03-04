@@ -20,9 +20,14 @@ public class Timer extends java.util.Timer
     }
 
     public void reset() {
-        internalTimerTask.cancel();
-        internalTimerTask = this.getInternalTimerTask();
-        this.schedule(internalTimerTask, delay);
+        try {
+            internalTimerTask.cancel();
+            internalTimerTask = this.getInternalTimerTask();
+            this.schedule(internalTimerTask, delay);
+        }
+        catch (Exception e) {
+            // do nothing
+        }
     }
 
     private TimerTask getInternalTimerTask() {

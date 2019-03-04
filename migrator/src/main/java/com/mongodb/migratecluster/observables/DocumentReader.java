@@ -2,6 +2,7 @@ package com.mongodb.migratecluster.observables;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.migratecluster.migrators.MigratorSettings;
 import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.model.DocumentsBatch;
 import io.reactivex.Observable;
@@ -29,7 +30,6 @@ public class DocumentReader extends Observable<DocumentsBatch> {
     private final Resource resource;
     private final Document readFromDocumentId;
     private  MongoCollection<Document> collection;
-    private final int BATCH_SIZE_DOC_READER = 1000; //1000
     private final Semaphore throttler;
 
 
@@ -52,7 +52,7 @@ public class DocumentReader extends Observable<DocumentsBatch> {
         // fetch the ids and do bulk read of 1000 docs at a time
         observable
                 .subscribeOn(Schedulers.io())
-                .buffer(BATCH_SIZE_DOC_READER)
+                .buffer(MigratorSettings.BATCH_SIZE_DOC_READER)
                 // .observeOn(Schedulers.io()) // throttle id reader based on documend reader by using same thread
                 .flatMap(new Function<List<Object>, Observable<DocumentsBatch>>() {
                     @Override

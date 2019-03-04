@@ -1,5 +1,6 @@
 package com.mongodb.migratecluster.oplog;
 
+import com.mongodb.MongoBulkWriteException;
 import com.mongodb.MongoClient;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
@@ -77,7 +78,9 @@ public class OplogWriter {
                 // change of namespace. bulk apply models for previous namespace
                 if (previousNamespace != null && models.size() > 0) {
                     BulkWriteResult bulkWriteResult = applyBulkWriteModelsOnCollection(previousNamespace, models);
-                    totalModelsAdded += bulkWriteResult.getDeletedCount() + bulkWriteResult.getModifiedCount() + bulkWriteResult.getInsertedCount();
+                    if (bulkWriteResult != null) {
+                        totalModelsAdded += bulkWriteResult.getDeletedCount() + bulkWriteResult.getModifiedCount() + bulkWriteResult.getInsertedCount();
+                    }
                     models.clear();
                     // save documents timestamp to oplog tracker
                     saveTimestampToOplogStore(previousDocument);
@@ -98,12 +101,13 @@ public class OplogWriter {
 
         if (models.size() > 0) {
             BulkWriteResult bulkWriteResult = applyBulkWriteModelsOnCollection(previousNamespace, models);
-            totalModelsAdded += bulkWriteResult.getDeletedCount() + bulkWriteResult.getModifiedCount() + bulkWriteResult.getInsertedCount();
+            if (bulkWriteResult != null) {
+                totalModelsAdded += bulkWriteResult.getDeletedCount() + bulkWriteResult.getModifiedCount() + bulkWriteResult.getInsertedCount();
 
-            // save documents timestamp to oplog tracker
-            saveTimestampToOplogStore(previousDocument);
+                // save documents timestamp to oplog tracker
+                saveTimestampToOplogStore(previousDocument);
+            }
         }
-        // TODO: If no data has changed then no documents will be found in the oplog. Check for noop?
 
         if (totalModelsAdded != totalValidOperations) {
             logger.warn("total models added {} is not equal to operations injected {}", totalModelsAdded, operations.size());
@@ -145,6 +149,34 @@ public class OplogWriter {
     private BulkWriteResult applyBulkWriteModelsOnCollection(String namespace,
                                  List<WriteModel<Document>> operations)  throws AppException {
         MongoCollection<Document> collection = MongoDBHelper.getCollectionByNamespace(this.targetClient, namespace);
+        try{
+            return applyBulkWriteModelsOnCollection(collection, operations);
+        }
+        catch (MongoBulkWriteException err) {
+            if (err.getWriteErrors().size() == operations.size()) {
+                // every doc in this batch is error. just move on
+                return null;
+            }
+            logger.warn("bulk write of oplog entries failed. applying oplog operations one by one");
+            BulkWriteResult bulkWriteResult = null;
+            for (WriteModel<Document> op : operations) {
+                List<WriteModel<Document>> soloBulkOp = new ArrayList<>();
+                soloBulkOp.add(op);
+                try {
+                    bulkWriteResult = applyBulkWriteModelsOnCollection(collection, soloBulkOp);
+                } catch (Exception soloErr) {
+                    // do nothing
+                }
+            }
+            return bulkWriteResult;
+        }
+        catch (Exception ex) {
+            logger.warn("bulk write of oplog entries failed. doing one by one now");
+        }
+        return null;
+    }
+
+    private BulkWriteResult applyBulkWriteModelsOnCollection(MongoCollection<Document> collection, List<WriteModel<Document>> operations) throws AppException {
         BulkWriteResult writeResult = MongoDBHelper.performOperationWithRetry(
                 () -> {
                     BulkWriteOptions options = new BulkWriteOptions();

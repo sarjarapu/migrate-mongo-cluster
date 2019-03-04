@@ -3,6 +3,7 @@ package com.mongodb.migratecluster.observables;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
+import com.mongodb.migratecluster.migrators.MigratorSettings;
 import com.mongodb.migratecluster.model.Resource;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
@@ -28,8 +29,7 @@ public class DocumentIdReader extends Observable<Object> {
     private final MongoCollection<Document> collection;
     private final Resource resource;
     private final Document readFromDocumentId;
-    private final int BATCH_SIZE_ID_READER = 5000; // 5000
-    private final int BATCHES_MAX_COUNT = 2;
+
     /**
      * @param collection
      * @param resource An object representing database and collection that reader will process
@@ -81,7 +81,7 @@ public class DocumentIdReader extends Observable<Object> {
             Document idValueFromPriorBatches = collection
                     .find(Filters.lte("_id", idValue.get("latest_id")))
                     .sort(BsonDocument.parse("{_id: -1}")) // descending order
-                    .skip(BATCHES_MAX_COUNT * BATCH_SIZE_ID_READER)
+                    .skip((MigratorSettings.BATCHES_MAX_COUNT + 1) * MigratorSettings.BATCH_SIZE_ID_READER) // excess just in case
                     .limit(1)
                     .projection(BsonDocument.parse("{_id: 1}"))
                     .first();
@@ -92,7 +92,7 @@ public class DocumentIdReader extends Observable<Object> {
                         .find(Filters.gte("_id", idValueFromPriorBatches.get("_id")))
                         .projection(BsonDocument.parse("{_id: 1}"))
                         .sort(BsonDocument.parse("{_id: 1}"))
-                        .batchSize(BATCH_SIZE_ID_READER);
+                        .batchSize(MigratorSettings.BATCH_SIZE_ID_READER);
                 return iterable;
             }
         }
@@ -101,7 +101,7 @@ public class DocumentIdReader extends Observable<Object> {
                 .find()
                 .projection(BsonDocument.parse("{_id: 1}"))
                 .sort(BsonDocument.parse("{_id: 1}"))
-                .batchSize(BATCH_SIZE_ID_READER);
+                .batchSize(MigratorSettings.BATCH_SIZE_ID_READER);
         return iterable;
     }
 }

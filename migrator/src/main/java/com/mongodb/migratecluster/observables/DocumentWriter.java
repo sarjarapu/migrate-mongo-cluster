@@ -2,6 +2,7 @@ package com.mongodb.migratecluster.observables;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.InsertManyOptions;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.model.DocumentsBatch;
@@ -53,7 +54,14 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
                                     MongoCollection<Document> collection = getMongoCollection();
                                     Document operation = new Document("operation", "insertMany");
                                     MongoDBHelper.performOperationWithRetry(() -> {
-                                        collection.insertMany(documents);
+                                        InsertManyOptions options = new InsertManyOptions();
+                                        options.ordered(false);
+                                        try {
+                                            collection.insertMany(documents, options);
+                                        }
+                                        catch (Exception e) {
+                                            // do nothing
+                                        }
                                         return documents.size();
                                     }, operation);
 

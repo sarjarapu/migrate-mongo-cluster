@@ -1,3 +1,35 @@
+# added wiredTigerCacheSizeGB to limit the overall system consumption
+/opt/mongodb/v3.4.18/bin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath source-cluster/data/replset/rs0/db --logpath source-cluster/data/replset/rs0/mongod.log --port 18000 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath source-cluster/data/replset/rs1/db --logpath source-cluster/data/replset/rs1/mongod.log --port 18001 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath source-cluster/data/replset/rs2/db --logpath source-cluster/data/replset/rs2/mongod.log --port 18002 --bind_ip 0.0.0.0 --logappend --fork
+
+/opt/mongodb/v3.4.18/bin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath target-cluster/data/replset/rs0/db --logpath target-cluster/data/replset/rs0/mongod.log --port 18100 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath target-cluster/data/replset/rs1/db --logpath target-cluster/data/replset/rs1/mongod.log --port 18101 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --wiredTigerCacheSizeGB 1 --replSet replset --dbpath target-cluster/data/replset/rs2/db --logpath target-cluster/data/replset/rs2/mongod.log --port 18102 --bind_ip 0.0.0.0 --logappend --fork
+
+/opt/mongodb/v3.4.18/bin/mongod --wiredTigerCacheSizeGB 1 --replSet rsOplog --dbpath oplog-store/data/rsOplog/rs0/db --logpath oplog-store/data/rsOplog/rs0/mongod.log --port 18200 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --wiredTigerCacheSizeGB 1 --replSet rsOplog --dbpath oplog-store/data/rsOplog/rs1/db --logpath oplog-store/data/rsOplog/rs1/mongod.log --port 18201 --bind_ip 0.0.0.0 --logappend --fork
+/opt/mongodb/v3.4.18/bin/mongod --wiredTigerCacheSizeGB 1 --replSet rsOplog --dbpath oplog-store/data/rsOplog/rs2/db --logpath oplog-store/data/rsOplog/rs2/mongod.log --port 18202 --bind_ip 0.0.0.0 --logappend --fork
+
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18000
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18001
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18002
+
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18100
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18101
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18102
+
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18200
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18201
+mongo admin --eval 'db.shutdownServer({force: true})' --port 18202
+
+
+# clean up
+mongo --port 18200
+db.getSiblingDB('test').dropDatabase();
+db.getSiblingDB('migrate-mongo').dropDatabase();
+
+
 // initial populate
 var a,d;
 for (a=1; a < 2100; a++) {
@@ -8,44 +40,79 @@ for (a=1; a < 2100; a++) {
     }
     db.deviceState.insertMany(batch);
 }
-// bulk populate to lot more documents
-var a,d;
-for (a=1001; a < 1200; a++) {
-    var bulk = db.deviceState5.initializeUnorderedBulkOp();
-    for (d=1; d <= 100000; d++) {
-        var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-11T03:00:00Z"), somedata: "Junk" };
-        bulk.insert(item);
-    }
-    var bulkResult = bulk.execute();
-    print("done with iteration " + a)
-}
-
-keyhole --seed --file template.json --collection exampleColl --total 500000000  "mongodb://localhost:18000,localhost:18001,localhost:18002/exampledb?replicaSet=replset"
 
 
-/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath source-cluster/data/replset/rs0/db --logpath source-cluster/data/replset/rs0/mongod.log --port 18000 --bind_ip 0.0.0.0 --logappend --fork
-/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath source-cluster/data/replset/rs1/db --logpath source-cluster/data/replset/rs1/mongod.log --port 18001 --bind_ip 0.0.0.0 --logappend --fork
-/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath source-cluster/data/replset/rs2/db --logpath source-cluster/data/replset/rs2/mongod.log --port 18002 --bind_ip 0.0.0.0 --logappend --fork
-
-/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath target-cluster/data/replset/rs0/db --logpath target-cluster/data/replset/rs0/mongod.log --port 18100 --bind_ip 0.0.0.0 --logappend --fork
-/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath target-cluster/data/replset/rs1/db --logpath target-cluster/data/replset/rs1/mongod.log --port 18101 --bind_ip 0.0.0.0 --logappend --fork
-/opt/mongodb/v3.4.18/bin/mongod --replSet replset --dbpath target-cluster/data/replset/rs2/db --logpath target-cluster/data/replset/rs2/mongod.log --port 18102 --bind_ip 0.0.0.0 --logappend --fork
-
-/opt/mongodb/v3.4.18/bin/mongod --replSet rsOplog --dbpath oplog-store/data/rsOplog/rs0/db --logpath oplog-store/data/rsOplog/rs0/mongod.log --port 18200 --bind_ip 0.0.0.0 --logappend --fork
-/opt/mongodb/v3.4.18/bin/mongod --replSet rsOplog --dbpath oplog-store/data/rsOplog/rs1/db --logpath oplog-store/data/rsOplog/rs1/mongod.log --port 18201 --bind_ip 0.0.0.0 --logappend --fork
-/opt/mongodb/v3.4.18/bin/mongod --replSet rsOplog --dbpath oplog-store/data/rsOplog/rs2/db --logpath oplog-store/data/rsOplog/rs2/mongod.log --port 18202 --bind_ip 0.0.0.0 --logappend --fork
-
-mongo admin --eval 'db.shutdownServer({force: true})' --port 18100
-mongo admin --eval 'db.shutdownServer({force: true})' --port 18101
-mongo admin --eval 'db.shutdownServer({force: true})' --port 18102
-
-// slow add of data
-while(true) {
-    sleep(1000);
-    var index = parseInt(Math.random()*5)+1;
+// real time update: slow add
+var i = 0;
+while(i < 1000) {
+    i ++;
+    sleep(10);
+    var index = ''; //parseInt(Math.random()*5)+1;
     db.getCollection('deviceState' + index).insert({fname: 'fname'+index});
 }
 
+
+// real time update: fast add
+var a,d;
+for (a=2150; a < 2200; a++) {
+    var batch = []
+    for (d=1; d <= a; d++) {
+        var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-15T03:00:00Z"), somedata: "realtime Junk" };
+        // batch.push(item);
+        db.deviceState.insert(item);
+    }
+    // db.deviceState.insertMany(batch);
+}
+
+
+
+
+// real time update: faster add
+var a,d;
+for (a=2200; a < 2300; a++) {
+    var batch = []
+    for (d=1; d <= a; d++) {
+        var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-15T03:00:00Z"), somedata: "realtime Junk" };
+        // batch.push(item);
+        db.deviceState.insert(item);
+    }
+    // db.deviceState.insertMany(batch);
+}
+
+
+
+# Test cases
+
+- [x] preinsert, migrate
+- [x] preinsert, migrate, wait, add slow, wait
+- [x] preinsert, migrate, wait, stop/restart, (add slow, wait)
+- [x] preinsert, migrate, wait, add slow, wait, (add fast, wait)
+- [x] preinsert, migrate, wait, add fast, wait
+- [x] preinsert, migrate, wait, add fast, wait, (add fast, wait)
+- [x] preinsert, add slow, migrate, wait
+- [x] preinsert, add fast, migrate, wait
+
+
+# Next steps
+
+- Bug I noticed some larger set on target
+- Test with smaller size. 
+
+
+
+
+// very simple database testing
+var a,d;
+for (a=1; a < 500; a++) {
+    var batch = []
+    for (d=1; d <= a; d++) {
+        var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-11T03:00:00Z"), somedata: "Junk" };
+        batch.push(item);
+    }
+    db.deviceState.insertMany(batch);
+}
+
+db.getSiblingDB('local').getCollection('oplog.rs').find().sort({'$natural': -1}).limit(1).pretty()
 
 
 data = db.deviceState.find().toArray();
@@ -57,14 +124,45 @@ for (var i = 0; i < data.length; i++) {
 }
 var bulkResult = bulk.execute();
 
-// real time update
+
+// bulk populate to lot more documents
 var a,d;
-for (a=2100; a < 2150; a++) {
-    var batch = []
-    for (d=1; d <= a; d++) {
-        var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-15T03:00:00Z"), somedata: "realtime Junk" };
-        // batch.push(item);
-        db.deviceState.insert(item);
+for (a=1000; a < 1010; a++) {
+    var bulk = db.deviceState.initializeUnorderedBulkOp();
+    for (d=1; d <= 100000; d++) {
+        var item = { accountId: a, deviceId: d, eventDate: ISODate("2019-01-11T03:00:00Z"), somedata: "Junk" };
+        bulk.insert(item);
     }
-    // db.deviceState.insertMany(batch);
+    var bulkResult = bulk.execute();
+    print("done with iteration " + a)
 }
+
+
+# run this on oplog
+use migrate-mongo;
+db.oplog.tracker.findOne()
+Timestamp(1551654994, 57870)
+
+# run this on source
+db.getSiblingDB('local').getCollection('oplog.rs').count({ts: {$gte: Timestamp(1551661274, 1)}, op: {$ne : "n"} })
+
+use test;
+db.deviceState.findOne()
+
+
+[INFO] 2019-03-03 19:21:12 INFO  [main] connection:71 - Opened connection [connectionId{localValue:77, serverValue:393}] to shyams-mac:18200
+[WARN] 2019-03-03 19:21:12 WARN  [main] OplogWriter:114 - total models added 0 is not equal to operations injected 1000
+[INFO] 2019-03-03 19:21:12 INFO  [Timer-0] OplogBufferedReader:98 - collectAndNotify invoked by [Elapsed Timer] is notifying subscribers about [0] documents. Total notified 1000
+Exception in thread "Timer-0" java.lang.NullPointerException
+	at io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:66)
+	at com.mongodb.migratecluster.observables.OplogBufferedReader.collectAndNotify(OplogBufferedReader.java:103)
+	at com.mongodb.migratecluster.observables.OplogBufferedReader.lambda$subscribeActual$0(OplogBufferedReader.java:68)
+	at com.mongodb.migratecluster.utils.Timer$1.run(Timer.java:39)
+	at java.base/java.util.TimerThread.mainLoop(Timer.java:556)
+	at java.base/java.util.TimerThread.run(Timer.java:506)
+[INFO] 2019-03-03 19:21:14 INFO  [RxCachedThreadScheduler-2] OplogMigrator:179 - Target is behind by 1 seconds & 0000 operations; Target: Timestamp{value=6664336990395172287, seconds=1551661871, inc=1471}, Source: Timestamp{value=6664336994690138834, seconds=1551661872, inc=722}
+[INFO] 2019-03-03 19:21:19 INFO  [RxCachedThreadScheduler-2] OplogMigrator:179 - Target is behind by 1 seconds & 0000 operations; Target: Timestamp{value=6664336990395172287, seconds=1551661871, inc=1471}, Source: Timestamp{value=6664336994690138834, seconds=1551661872, inc=722}
+[INFO] 2019-03-03 19:21:24 INFO  [RxCachedThreadScheduler-2] OplogMigrator:179 - Target is behind by 1 seconds & 0000 operations; Target: Timestamp{value=6664336990395172287, seconds=1551661871, inc=1471}, Source: Timestamp{value=6664336994690138834, seconds=1551661872, inc=722}
+
+
+

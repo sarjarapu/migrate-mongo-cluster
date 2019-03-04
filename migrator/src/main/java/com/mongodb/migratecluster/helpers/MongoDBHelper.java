@@ -55,7 +55,8 @@ public  class MongoDBHelper {
                 if (bwe.getMessage().contains("E11000 duplicate key error collection")) {
                     logger.warn("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
                             operation.toJson(), bwe.toString());
-                    return null;
+                    throw bwe;
+                    // return null;
                 }
                 logger.error("error while performing operation: {}; error: {}", operation.toJson(), bwe.toString());
                 throw bwe;

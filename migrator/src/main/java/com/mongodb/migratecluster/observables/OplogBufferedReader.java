@@ -94,13 +94,13 @@ public class OplogBufferedReader extends Observable<List<Document>> {
     private void collectAndNotify(Observer<? super List<Document>> observer, String invoker) {
         synchronized (lockObject) {
             List<Document> documents = this.queue.stream().collect(Collectors.toList());
-            this.queue.clear();
-            logger.info("collectAndNotify invoked by [{}] is notifying subscribers about [{}] documents. Total notified {}",
-                    invoker, documents.size(), this.counter.get());
-            if (documents == null) {
-                documents = new ArrayList<>();
+            // notify only if there are documents in queue
+            if (documents != null && documents.size() > 0) {
+                this.queue.clear();
+                logger.info("collectAndNotify invoked by [{}] is notifying subscribers about [{}] documents. Total notified {}",
+                        invoker, documents.size(), this.counter.get());
+                observer.onNext(documents);
             }
-            observer.onNext(documents);
         }
     }
 
