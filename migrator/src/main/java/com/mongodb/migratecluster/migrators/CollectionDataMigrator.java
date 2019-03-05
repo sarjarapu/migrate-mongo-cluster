@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -38,9 +39,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class CollectionDataMigrator extends BaseMigrator {
     final static Logger logger = LoggerFactory.getLogger(CollectionDataMigrator.class);
+    private final Object lockObject = new Object();
+    private final ConcurrentHashMap<Resource, CollectionDataTracker> oplogDataTrackers;
 
     public CollectionDataMigrator(ApplicationOptions options) {
         super(options);
+        oplogDataTrackers = new ConcurrentHashMap<>();
     }
 
     /**
@@ -108,7 +112,7 @@ public class CollectionDataMigrator extends BaseMigrator {
                     .map(resource -> {
                         logger.info("found collection {}", resource.getNamespace());
                         dropTargetCollectionIfRequired(targetClient, resource);
-                        Document latestDocumentId = getLatestDocumentId(oplogClient, resource);
+                        Document latestDocumentId = getOplogStoreLatestDocumentIdForGivenResource(oplogClient, resource);
                         return new DocumentReader(sourceClient, resource, latestDocumentId);
                     })
                     .map(reader -> new DocumentWriter(targetClient, reader))
@@ -159,11 +163,14 @@ public class CollectionDataMigrator extends BaseMigrator {
         if (batch.getSize() == 0) {
             return ;
         }
-        Document document = batch.getDocuments().get(batch.getSize()-1);
-        logger.info("Saving Batch {}. lastDocumentId [{}]", batch.toString(), document.get("_id"));
+        // NOTE: Multiple threads could be writing here. so
+        synchronized (lockObject) {
+            Document document = batch.getDocuments().get(batch.getSize()-1);
+            logger.info("Saving Batch {}. lastDocumentId [{}]", batch.toString(), document.get("_id"));
 
-        WritableDataTracker tracker = new CollectionDataTracker(client, batch.getResource(), this.migratorName);
-        tracker.updateLatestDocument(document);
+            WritableDataTracker tracker = getOrCreateCollectionDataTracker(client, batch.getResource());
+            tracker.updateLatestDocument(document);
+        }
     }
 
     /**
@@ -172,13 +179,15 @@ public class CollectionDataMigrator extends BaseMigrator {
      * @return a Document representation of the latest document saved into oplog db
      * @see Document
      */
-    private Document getLatestDocumentId(MongoClient client, Resource resource) {
+    private Document getOplogStoreLatestDocumentIdForGivenResource(MongoClient client, Resource resource) {
         if (options.isDropTarget()) {
             return null;
         }
         else {
-            ReadOnlyTracker tracker = new CollectionDataTracker(client, resource, this.migratorName);
-            return tracker.getLatestDocument();
+            synchronized (lockObject) {
+                ReadOnlyTracker tracker = getOrCreateCollectionDataTracker(client, resource);
+                return tracker.getLatestDocument();
+            }
         }
     }
 
@@ -192,6 +201,14 @@ public class CollectionDataMigrator extends BaseMigrator {
         if (options.isDropTarget()) {
             MongoDBHelper.dropCollection(client, resource.getDatabase(), resource.getCollection());
         }
+    }
+
+    private CollectionDataTracker getOrCreateCollectionDataTracker(MongoClient client, Resource resource) {
+        if (!oplogDataTrackers.containsKey(resource)) {
+            CollectionDataTracker tracker = new CollectionDataTracker(client, resource, this.migratorName);
+            oplogDataTrackers.putIfAbsent(resource, tracker);
+        }
+        return oplogDataTrackers.get(resource);
     }
 
 }

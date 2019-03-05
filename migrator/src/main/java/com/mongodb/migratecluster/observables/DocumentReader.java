@@ -78,14 +78,14 @@ public class DocumentReader extends Observable<DocumentsBatch> {
     }
 
     public void acquireThrottler() throws InterruptedException {
-        logger.info(String.format("Throttler [%d] wait for the consumers to write to db", throttler.availablePermits()));
+        logger.debug(String.format("Throttler [%d] wait for the consumers to write to db", throttler.availablePermits()));
         throttler.acquire();
-        logger.info(String.format("Throttler [%d] got the permit for me to produce", throttler.availablePermits()));
+        logger.debug(String.format("Throttler [%d] got the permit for me to produce", throttler.availablePermits()));
     }
 
     public void releaseThrottler() {
-        logger.info(String.format("Throttler [%d] done consuming the data. notifying producers", throttler.availablePermits()));
+        logger.debug(String.format("Throttler [%d] done consuming the data. notifying producers", throttler.availablePermits()));
         throttler.release();
-        logger.info(String.format("Throttler [%d] releasing the permit for producers", throttler.availablePermits()));
+        logger.debug(String.format("Throttler [%d] releasing the permit for producers", throttler.availablePermits()));
     }
 }

@@ -79,6 +79,16 @@ for (a=2200; a < 2300; a++) {
     // db.deviceState.insertMany(batch);
 }
 
+## Display the collections and their counts
+
+var dbs=['test','exampledb'];
+dbs.forEach(dbName => {
+    var collections = db.getSiblingDB(dbName).getCollectionNames();
+    collections.forEach(collName => print(`${dbName}.${collName} - ${db.getSiblingDB(dbName).getCollection(collName).countDocuments({})}`));
+})
+
+
+print(new Date() + ' - ' + db.getSiblingDB('test').getCollection('deviceState5').count())
 
 
 # Test cases
@@ -165,4 +175,44 @@ Exception in thread "Timer-0" java.lang.NullPointerException
 [INFO] 2019-03-03 19:21:24 INFO  [RxCachedThreadScheduler-2] OplogMigrator:179 - Target is behind by 1 seconds & 0000 operations; Target: Timestamp{value=6664336990395172287, seconds=1551661871, inc=1471}, Source: Timestamp{value=6664336994690138834, seconds=1551661872, inc=722}
 
 
+## Adhoc fixes how to
 
+use migrate-mongo;
+db.oplog.tracker.findOne()
+{
+	"_id" : ObjectId("5c7d6831c7481f3d76f1d6be"),
+	"reader" : "localhost:18000,localhost:18001,localhost:18002/?replicaSet=replset",
+	"ts" : Timestamp(1551722540, 1)
+}
+
+use test;
+db.deviceState.find().pretty()
+{
+	"_id" : ObjectId("5c7d7e69c7481f3d760c70be"),
+	"collection" : "deviceState",
+	"database" : "test",
+	"reader" : "localhost:18000,localhost:18001,localhost:18002/?replicaSet=replset",
+	"latest_id" : ObjectId("5c79bb21ce613cf77150f923")
+}
+{
+	"_id" : ObjectId("5c7d7e69c7481f3d760c70bd"),
+	"collection" : "deviceState",
+	"database" : "test",
+	"reader" : "localhost:18000,localhost:18001,localhost:18002/?replicaSet=replset",
+	"latest_id" : ObjectId("5c7c02210565c8efdc5da6f7")
+}
+
+### if stopped at record count and you want to revive from there
+
+// find the next record to resume from 
+db.deviceState.find({},{_id: 1}).sort({_id: 1}).skip(88907447).limit(1)
+{ "_id" : ObjectId("5c7b0389da9fc070bd08f12f") }
+
+// find documents that are greater than the id
+db.deviceState.count({_id: {$gt : ObjectId("5c79bb21ce613cf77150fd0b")}},{_id: 1})
+db.deviceState.countDocuments({_id: {$gt : ObjectId("5c7b0389da9fc070bd08f12f")}})
+// 102668075
+
+db.deviceState.count({_id: {$gt : ObjectId("5c7b0389da9fc070bd08f12f")}},{_id: 1})
+db.deviceState.countDocuments({_id: {$gt : ObjectId("5c7b0389da9fc070bd08f12f")}})
+// 13762627 yet to sync
