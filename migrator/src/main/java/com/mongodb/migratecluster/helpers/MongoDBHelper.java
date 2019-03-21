@@ -53,8 +53,9 @@ public  class MongoDBHelper {
             }
             catch (MongoBulkWriteException bwe) {
                 if (bwe.getMessage().contains("E11000 duplicate key error collection")) {
-                    logger.warn("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
-                            operation.toJson(), bwe.toString());
+                	// Don't report duplicates, they are expected 
+                    //logger.warn("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
+                    //        operation.toJson(), bwe.toString());
                     throw bwe;
                     // return null;
                 }
@@ -63,8 +64,9 @@ public  class MongoDBHelper {
             }
             catch (MongoWriteException we) {
                 if (we.getMessage().startsWith("E11000 duplicate key error collection")) {
-                    logger.warn("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
-                            operation.toJson(), we.toString());
+                	// Don't report duplicates, they are to be expected
+                    //logger.warn("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
+                    //        operation.toJson(), we.toString());
                     return null;
                 }
                 logger.error("error while performing operation: {}; error: {}", operation.toJson(), we.toString());

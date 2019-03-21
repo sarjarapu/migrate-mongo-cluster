@@ -157,23 +157,48 @@ public class OplogWriter {
                 // every doc in this batch is error. just move on
                 return null;
             }
-            logger.warn("bulk write of oplog entries failed. applying oplog operations one by one");
             BulkWriteResult bulkWriteResult = null;
+            Long dupCount = 0L;
+            Long totCount = 0L;
             for (WriteModel<Document> op : operations) {
+            	totCount++;
                 List<WriteModel<Document>> soloBulkOp = new ArrayList<>();
                 soloBulkOp.add(op);
                 try {
                     bulkWriteResult = applyBulkWriteModelsOnCollection(collection, soloBulkOp);
+                } catch (MongoBulkWriteException bwe) {
+                        if (bwe.getMessage().contains("E11000 duplicate key error collection")) {
+                        	dupCount++;;
+                        }
                 } catch (Exception soloErr) {
-                    // do nothing
+                    logger.error("Single write failed: {} for {}.",soloErr.getMessage(),op.toString());
                 }
             }
+            logger.warn("bulk write of oplog entries failed. oplog operations applied one by one. {} of {} were ignored as duplicates",dupCount,totCount);
             return bulkWriteResult;
         }
         catch (Exception ex) {
             logger.warn("bulk write of oplog entries failed. doing one by one now");
+            BulkWriteResult bulkWriteResult = null;
+            Long dupCount = 0L;
+            Long totCount = 0L;
+            for (WriteModel<Document> op : operations) {
+            	totCount++;
+                List<WriteModel<Document>> soloBulkOp = new ArrayList<>();
+                soloBulkOp.add(op);
+                try {
+                    bulkWriteResult = applyBulkWriteModelsOnCollection(collection, soloBulkOp);
+                } catch (MongoBulkWriteException bwe) {
+                    if (bwe.getMessage().contains("E11000 duplicate key error collection")) {
+                    	dupCount++;;
+                    }
+                } catch (Exception soloErr) {
+                	logger.error("Exception in single write: {} for {}.",soloErr.getMessage(),op.toString());
+                }
+            }
+            logger.warn("bulk write of oplog entries failed. oplog operations applied one by one. {} of {} were ignored as duplicates",dupCount,totCount);
+            return bulkWriteResult;
         }
-        return null;
     }
 
     private BulkWriteResult applyBulkWriteModelsOnCollection(MongoCollection<Document> collection, List<WriteModel<Document>> operations) throws AppException {
