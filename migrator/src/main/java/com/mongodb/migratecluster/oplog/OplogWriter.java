@@ -103,7 +103,8 @@ public class OplogWriter {
         if (models.size() > 0) {
             BulkWriteResult bulkWriteResult = applyBulkWriteModelsOnCollection(previousNamespace, models);
             if (bulkWriteResult != null) {
-                totalModelsAdded += bulkWriteResult.getDeletedCount() + bulkWriteResult.getModifiedCount() + bulkWriteResult.getInsertedCount();
+                totalModelsAdded += bulkWriteResult.getDeletedCount() + bulkWriteResult.getModifiedCount() + bulkWriteResult.getInsertedCount() 
+                	+ bulkWriteResult.getUpserts().size();
 
                 // save documents timestamp to oplog tracker
                 saveTimestampToOplogStore(previousDocument);
