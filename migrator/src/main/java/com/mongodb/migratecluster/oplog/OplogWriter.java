@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * File: OplogWriter
@@ -249,14 +250,25 @@ public class OplogWriter {
 
     private WriteModel<Document> getInsertWriteModel(Document operation) {
         Document document = operation.get("o", Document.class);
-        return new InsertOneModel<>(document);
+        /*
+         * Change an insert into a replaceOne with upsert=true in case the data got copied before we processed the oplog.
+         */
+        ReplaceOptions options = new ReplaceOptions().upsert(true);
+        Document find = new Document("_id",document.get("_id"));
+        return new ReplaceOneModel<>(find,document,options);
     }
 
     private WriteModel<Document>  getUpdateWriteModel(Document operation) throws AppException {
         Document find = operation.get("o2", Document.class);
         Document update = operation.get("o", Document.class);
-
-        return new UpdateOneModel<>(find, update);
+        /*
+         * Can only update in Java if the individual fields are changed, otherwise use replace
+         */
+		Set<String> docKeys = update.keySet();
+		if (docKeys.size() == 1 && docKeys.iterator().next().startsWith("$"))
+			return new UpdateOneModel<>(find, update);
+		else
+			return new ReplaceOneModel<>(find, update);
     }
 
     private WriteModel<Document>  getDeleteWriteModel(Document operation) throws AppException {
