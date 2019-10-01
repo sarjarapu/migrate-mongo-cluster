@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mongodb.migratecluster.utils.ListUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * File: ApplicationOptions
@@ -20,6 +22,7 @@ public class ApplicationOptions {
     private boolean showHelp;
     private boolean dropTarget;
     private List<ResourceFilter> blackListFilter;
+    private Map<String, String> renames;
 
     public ApplicationOptions() {
         sourceCluster = "";
@@ -29,6 +32,7 @@ public class ApplicationOptions {
         showHelp = false;
         dropTarget = false;
         setBlackListFilter(new ArrayList<>());
+        setRenames(new HashMap<>());
     }
 
 
@@ -102,6 +106,15 @@ public class ApplicationOptions {
                 this.isShowHelp(), this.getConfigFilePath(), this.getSourceCluster(),
                 this.getTargetCluster(), this.getOplogStore(), this.isDropTarget(),
                 ListUtils.select(this.getBlackListFilter(), f -> f.toString()));
+    }
+
+    @JsonProperty("renames")
+	public Map<String, String> getRenames() {
+		return renames;
+	}
+    
+    public void setRenames(Map<String, String> renames) {
+    	this.renames = renames;
     }
 
 }

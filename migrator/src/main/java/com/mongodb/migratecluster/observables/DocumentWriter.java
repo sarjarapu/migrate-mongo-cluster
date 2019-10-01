@@ -16,6 +16,7 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -24,16 +25,22 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Date: 4/26/17 5:02 AM
  * Description:
  */
+/**
+ * @author tspin
+ *
+ */
 public class DocumentWriter extends Observable<DocumentsBatch> {
     private final static Logger logger = LoggerFactory.getLogger(DocumentWriter.class);
     private final DocumentReader documentReader;
     private final MongoClient client;
     private final Resource resource;
+	private Map<String, String> renames;
 
-    public DocumentWriter(MongoClient client, DocumentReader documentReader) {
+    public DocumentWriter(MongoClient client, DocumentReader documentReader, Map<String, String> renames) {
         this.client = client;
         this.documentReader = documentReader;
         this.resource = documentReader.getResource();
+        this.renames = renames;
     }
 
     @Override
@@ -87,10 +94,27 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
     }
 
     private MongoCollection<Document> getMongoCollection() {
+    	// Allow renaming
+    	String databaseName = resource.getDatabase();
+    	String collectionName = resource.getCollection();
+    	
+    	if (renames.containsKey(databaseName)) {
+    		databaseName = renames.get(databaseName);
+    	}
+    	if (renames.containsKey(collectionName)) {
+    		collectionName = renames.get(collectionName);
+    	}
+    	String namespaceName = resource.getNamespace();
+    	if (resource.isEntireDatabase()) {
+    		namespaceName = databaseName;
+    	} else {
+    		namespaceName = String.format("%s.%s", databaseName, collectionName);
+    	}
+    	
         return BaseDocumentWriter.getInstance(client).getMongoCollection(
-                resource.getNamespace(),
-                resource.getDatabase(),
-                resource.getCollection());
+                namespaceName,
+                databaseName,
+                collectionName);
     }
 
 

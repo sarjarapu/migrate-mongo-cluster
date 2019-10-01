@@ -25,83 +25,93 @@ import java.util.concurrent.atomic.AtomicInteger;
  * the fetched _ids are published in bulk for a reader to read the whole document
  */
 public class DocumentIdReader extends Observable<Object> {
-    private final static Logger logger = LoggerFactory.getLogger(DocumentIdReader.class);
-    private final MongoCollection<Document> collection;
-    private final Resource resource;
-    private final Document readFromDocumentId;
+	private final static Logger logger = LoggerFactory.getLogger(DocumentIdReader.class);
+	private final MongoCollection<Document> collection;
+	private final Resource resource;
+	private final Document readFromDocumentId;
 
-    /**
-     * @param collection
-     * @param resource An object representing database and collection that reader will process
-     * @param readFromDocumentId A Document representing where to continue reading from given collection
-     */
-    public DocumentIdReader(MongoCollection<Document> collection, Resource resource, Document readFromDocumentId) {
-        this.collection = collection;
-        this.resource = resource;
-        this.readFromDocumentId = readFromDocumentId;
-    }
+	/**
+	 * @param collection
+	 * @param resource An object representing database and collection that reader will process
+	 * @param readFromDocumentId A Document representing where to continue reading from given collection
+	 */
+	public DocumentIdReader(MongoCollection<Document> collection, Resource resource, Document readFromDocumentId) {
+		this.collection = collection;
+		this.resource = resource;
+		this.readFromDocumentId = readFromDocumentId;
+	}
 
-    /**
-     * @param observer
-     */
-    @Override
-    protected void subscribeActual(Observer<? super Object> observer) {
-        FindIterable<Document> documents = getDocumentIdsFrom(this.readFromDocumentId);
+	/**
+	 * @param observer
+	 */
+	@Override
+	protected void subscribeActual(Observer<? super Object> observer) {
+		FindIterable<Document> documents = getDocumentIdsFrom(this.readFromDocumentId);
 
-        boolean readFromNowOn = true;
+		boolean readFromNowOn = true;
 
-        if (readFromDocumentId != null) {
-            readFromNowOn = false;
-            logger.info("found a tracker entry for resource {}. skipping all document until latest document {}", resource, readFromDocumentId.get("_id"));
-        }
-        AtomicInteger counter = new AtomicInteger(0);
-        for (Document item : documents) {
-            if (!item.isEmpty()) {
-                if (readFromNowOn) {
-                    String message = String.format("idReader reading document by _id: [%s]", item.get("_id").toString());
-                    logger.debug(message);
-                    observer.onNext(item.get("_id"));
-                }
-                else {
-                    counter.addAndGet(1);
-                    logger.debug("skipping current document {}", item.get("_id"));
-                    if (readFromDocumentId.get("latest_id").equals(item.get("_id"))) {
-                        readFromNowOn = true;
-                        logger.info("successfully found latest document after reads {}. Document {}", counter.get(), readFromDocumentId.get("latest_id"));
-                    }
-                }
-            }
-        }
-        observer.onComplete();
-    }
+		if (readFromDocumentId != null) {
+			readFromNowOn = false;
+			logger.info("found a tracker entry for resource {}. skipping all document until latest document {}", resource, readFromDocumentId.get("_id"));
+		}
+		AtomicInteger counter = new AtomicInteger(0);
+		for (Document item : documents) {
+			if (!item.isEmpty()) {
+				if (readFromNowOn) {
+					if (item.containsKey("_id")) {
+						try {
+							String message = String.format("idReader reading document by _id: [%s]", item.get("_id").toString());
+							logger.debug(message);
+							observer.onNext(item.get("_id"));
+						} catch (NullPointerException e) {
+							logger.warn("NPE in get id!");
+							logger.warn("item: {}", item);
+							logger.warn(e.getMessage());
+						}
+					} else {
+						logger.warn("subscribeActual: Document without _id - {}", item);
+					}
+				}
+				else {
+					counter.addAndGet(1);
+					logger.debug("skipping current document {}", item.get("_id"));
+					if (readFromDocumentId.get("latest_id").equals(item.get("_id"))) {
+						readFromNowOn = true;
+						logger.info("successfully found latest document after reads {}. Document {}", counter.get(), readFromDocumentId.get("latest_id"));
+					}
+				}
+			}
+		}
+		observer.onComplete();
+	}
 
-    private FindIterable<Document> getDocumentIdsFrom(Document idValue) {
-        if (idValue != null) {
-            // find the first _id of a few batches prior to given idValue
-            Document idValueFromPriorBatches = collection
-                    .find(Filters.lte("_id", idValue.get("latest_id")))
-                    .sort(BsonDocument.parse("{_id: -1}")) // descending order
-                    .skip((MigratorSettings.BATCHES_MAX_COUNT + 1) * MigratorSettings.BATCH_SIZE_ID_READER) // excess just in case
-                    .limit(1)
-                    .projection(BsonDocument.parse("{_id: 1}"))
-                    .first();
+	private FindIterable<Document> getDocumentIdsFrom(Document idValue) {
+		if (idValue != null) {
+			// find the first _id of a few batches prior to given idValue
+			Document idValueFromPriorBatches = collection
+					.find(Filters.lte("_id", idValue.get("latest_id")))
+					.sort(BsonDocument.parse("{_id: -1}")) // descending order
+					.skip((MigratorSettings.BATCHES_MAX_COUNT + 1) * MigratorSettings.BATCH_SIZE_ID_READER) // excess just in case
+					.limit(1)
+					.projection(BsonDocument.parse("{_id: 1}"))
+					.first();
 
-            if (idValueFromPriorBatches != null) {
-                // get all the docs from that priorBatch idValue
-                FindIterable<Document> iterable = collection
-                        .find(Filters.gte("_id", idValueFromPriorBatches.get("_id")))
-                        .projection(BsonDocument.parse("{_id: 1}"))
-                        .sort(BsonDocument.parse("{_id: 1}"))
-                        .batchSize(MigratorSettings.BATCH_SIZE_ID_READER);
-                return iterable;
-            }
-        }
+			if (idValueFromPriorBatches != null) {
+				// get all the docs from that priorBatch idValue
+				FindIterable<Document> iterable = collection
+						.find(Filters.gte("_id", idValueFromPriorBatches.get("_id")))
+						.projection(BsonDocument.parse("{_id: 1}"))
+						.sort(BsonDocument.parse("{_id: 1}"))
+						.batchSize(MigratorSettings.BATCH_SIZE_ID_READER);
+				return iterable;
+			}
+		}
 
-        FindIterable<Document> iterable = collection
-                .find()
-                .projection(BsonDocument.parse("{_id: 1}"))
-                .sort(BsonDocument.parse("{_id: 1}"))
-                .batchSize(MigratorSettings.BATCH_SIZE_ID_READER);
-        return iterable;
-    }
+		FindIterable<Document> iterable = collection
+				.find()
+				.projection(BsonDocument.parse("{_id: 1}"))
+				.sort(BsonDocument.parse("{_id: 1}"))
+				.batchSize(MigratorSettings.BATCH_SIZE_ID_READER);
+		return iterable;
+	}
 }

@@ -96,10 +96,10 @@ public class OplogMigrator extends BaseMigrator {
      * @return a oplog timestamp fetched from the oplog store
      */
     private BsonTimestamp getTimestampFromOplogStore() {
-        if (options.isDropTarget()) {
-            return null;
-        }
-        else {
+//        if (options.isDropTarget()) {
+//            return null;
+//        }
+//        else {
             MongoClient client = this.getOplogClient();
             ReadOnlyTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.migratorName);
             Document document = tracker.getLatestDocument();
@@ -108,7 +108,7 @@ public class OplogMigrator extends BaseMigrator {
                 return null;
             }
             return document.get("ts", BsonTimestamp.class);
-        }
+//        }
     }
 
     /**
@@ -158,6 +158,7 @@ public class OplogMigrator extends BaseMigrator {
         MongoClient sourceClient = getSourceClient();
         MongoClient targetClient = getTargetClient();
         MongoClient oplogStoreClient = getOplogClient();
+        logger.info("copyOplogsFromSourceToOplogstore timestamp: {}", lastTimestamp);
         OplogBufferedReader reader = new OplogBufferedReader(sourceClient, lastTimestamp);
         OplogWriter writer = new OplogWriter(targetClient, oplogStoreClient, this.migratorName, this.options);
 

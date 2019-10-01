@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * File: OplogWriter
@@ -41,6 +42,7 @@ public class OplogWriter {
     final static Logger logger = LoggerFactory.getLogger(OplogWriter.class);
     private final DatabaseFilterPredicate databasePredicate;
     private final CollectionFilterPredicate collectionPredicate;
+	private Map<String, String> renames;
 
     public OplogWriter(MongoClient targetClient, MongoClient oplogStoreClient, String reader, ApplicationOptions options) {
         this.targetClient = targetClient;
@@ -52,6 +54,7 @@ public class OplogWriter {
         List<ResourceFilter> blacklistFilter = options.getBlackListFilter();
         databasePredicate = new DatabaseFilterPredicate(blacklistFilter);
         collectionPredicate = new CollectionFilterPredicate(blacklistFilter);
+        renames = options.getRenames();
     }
 
     /**
@@ -70,7 +73,11 @@ public class OplogWriter {
         for(int i = 0; i < operations.size(); i++) {
             Document currentDocument = operations.get(i);
             String currentNamespace = currentDocument.getString("ns");
-
+            
+            logger.debug("Old namespace: {}", currentNamespace);
+            currentNamespace = renameNamespace(currentNamespace);
+            logger.debug("New namespace: {}", currentNamespace);
+            
             if (!isNamespaceAllowed(currentNamespace)) {
                 continue;
             }
@@ -115,6 +122,36 @@ public class OplogWriter {
 
         return totalModelsAdded;
     }
+
+	private String renameNamespace(String currentNamespace) {
+		// hope that's the correct place to alter the namespace
+		// brute forcing renames into this
+		String splitNamespace[] = currentNamespace.split("\\.");
+		String databaseName = "";
+		String collectionName = "";
+		logger.debug("splitNamespace.length: {}", splitNamespace.length);
+		if (splitNamespace.length > 0) {
+			logger.debug("splitNamespace[0]: {}", splitNamespace[0]);
+		}
+		if (splitNamespace.length == 1) {
+			databaseName = splitNamespace[0];
+		} else if (splitNamespace.length > 1) {
+			databaseName = splitNamespace[0];
+			collectionName = currentNamespace.substring(databaseName.length()+1);
+		}
+		if (renames.containsKey(databaseName)) {
+			databaseName = renames.get(databaseName);
+			logger.debug("Replacing database name {}", databaseName);
+		}
+		if (renames.containsKey(collectionName)) {
+			collectionName = renames.get(collectionName);
+			logger.debug("Repacing collection name {}", collectionName);
+		}
+		if (!databaseName.equals("")) {
+			currentNamespace = databaseName + "." + collectionName;
+		}
+		return currentNamespace;
+	}
 
     private boolean isNamespaceAllowed(String namespace) {
         if (!allowedNamespaces.containsKey(namespace))
@@ -242,7 +279,31 @@ public class OplogWriter {
     private void performRunCommand(Document operation) throws AppException {
         Document document = operation.get("o", Document.class);
         String databaseName = operation.getString("ns").replace(".$cmd", "");
-
+        
+        if (renames.containsKey(databaseName)) {
+        	databaseName = renames.get(databaseName);
+        	// brute forcing our way into ns
+//        	document.put("ns", databaseName + ".$cmd");
+        	operation.put("ns", databaseName + ".$cmd");
+        	if (document.containsKey("drop")) {
+        		if (renames.containsKey(document.get("drop"))) {
+        			document.put("drop", renames.get(document.get("drop")));
+        		}
+        	}
+        	if (document.containsKey("create")) {
+        		if (renames.containsKey(document.get("create"))) {
+        			document.put("create", renames.get(document.get("create")));
+        		}
+        	}
+        	if (document.containsKey("idIndex")) {
+        		Document index = document.get("idIndex", Document.class);
+        		String namespace = renameNamespace(index.getString("ns"));
+        		logger.debug("idIndex new namespace: {}", namespace);
+        		index.put("ns", namespace);
+        	}
+        }
+        logger.debug("performRunCommand: {}", databaseName);
+        logger.debug("performRunCommand, modified operation: {}", operation);
         MongoDatabase database = MongoDBHelper.getDatabase(this.targetClient, databaseName);
         MongoDBHelper.performOperationWithRetry(() -> {
             database.runCommand(document);

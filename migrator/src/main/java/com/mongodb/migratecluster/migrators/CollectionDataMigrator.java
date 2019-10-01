@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -41,10 +42,12 @@ public class CollectionDataMigrator extends BaseMigrator {
     final static Logger logger = LoggerFactory.getLogger(CollectionDataMigrator.class);
     private final Object lockObject = new Object();
     private final ConcurrentHashMap<Resource, CollectionDataTracker> oplogDataTrackers;
-
+    private final Map<String, String> renameOptions;
+    
     public CollectionDataMigrator(ApplicationOptions options) {
         super(options);
         oplogDataTrackers = new ConcurrentHashMap<>();
+        renameOptions = options.getRenames();
     }
 
     /**
@@ -111,11 +114,11 @@ public class CollectionDataMigrator extends BaseMigrator {
                 resourceObservable
                     .map(resource -> {
                         logger.info("found collection {}", resource.getNamespace());
-                        dropTargetCollectionIfRequired(targetClient, resource);
+                        dropTargetCollectionIfRequired(targetClient, resource, renameOptions);
                         Document latestDocumentId = getOplogStoreLatestDocumentIdForGivenResource(oplogClient, resource);
                         return new DocumentReader(sourceClient, resource, latestDocumentId);
                     })
-                    .map(reader -> new DocumentWriter(targetClient, reader))
+                    .map(reader -> new DocumentWriter(targetClient, reader, renameOptions))
                     .subscribe(writer -> {
                         writer
                             .map((DocumentsBatch batch) -> {
@@ -197,9 +200,17 @@ public class CollectionDataMigrator extends BaseMigrator {
      * @param client a MongoDB client object to work with collections
      * @param resource a collection in a database
      */
-    private void dropTargetCollectionIfRequired(MongoClient client, Resource resource) {
+    private void dropTargetCollectionIfRequired(MongoClient client, Resource resource, Map<String, String> renames) {
         if (options.isDropTarget()) {
-            MongoDBHelper.dropCollection(client, resource.getDatabase(), resource.getCollection());
+        	String databaseName = resource.getDatabase();
+        	String collectionName = resource.getCollection();
+        	if (renames.containsKey(databaseName)) {
+        		databaseName = renames.get(databaseName);
+        	}
+        	if (renames.containsKey(collectionName)) {
+        		collectionName = renames.get(collectionName);
+        	}
+            MongoDBHelper.dropCollection(client, databaseName, collectionName);
         }
     }
 
