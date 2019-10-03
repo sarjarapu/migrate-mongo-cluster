@@ -3,6 +3,7 @@ package com.mongodb.migratecluster.observables;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.migratecluster.helpers.ModificationHelper;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.model.DocumentsBatch;
@@ -34,13 +35,13 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
     private final DocumentReader documentReader;
     private final MongoClient client;
     private final Resource resource;
-	private Map<String, String> renames;
+    private final ModificationHelper modificationHelper;
 
-    public DocumentWriter(MongoClient client, DocumentReader documentReader, Map<String, String> renames) {
+    public DocumentWriter(MongoClient client, DocumentReader documentReader, ModificationHelper modificationHelper) {
         this.client = client;
         this.documentReader = documentReader;
         this.resource = documentReader.getResource();
-        this.renames = renames;
+        this.modificationHelper = modificationHelper;
     }
 
     @Override
@@ -94,27 +95,16 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
     }
 
     private MongoCollection<Document> getMongoCollection() {
-    	// Allow renaming
-    	String databaseName = resource.getDatabase();
-    	String collectionName = resource.getCollection();
-    	
-    	if (renames.containsKey(databaseName)) {
-    		databaseName = renames.get(databaseName);
-    	}
-    	if (renames.containsKey(collectionName)) {
-    		collectionName = renames.get(collectionName);
-    	}
-    	String namespaceName = resource.getNamespace();
+    	// added support for renaming
+        Resource mappedResource = modificationHelper.getMappedResource(resource);
+    	String namespaceName = mappedResource.getNamespace();
     	if (resource.isEntireDatabase()) {
-    		namespaceName = databaseName;
-    	} else {
-    		namespaceName = String.format("%s.%s", databaseName, collectionName);
+    		namespaceName = resource.getDatabase();
     	}
-    	
         return BaseDocumentWriter.getInstance(client).getMongoCollection(
                 namespaceName,
-                databaseName,
-                collectionName);
+                resource.getDatabase(),
+                resource.getCollection());
     }
 
 

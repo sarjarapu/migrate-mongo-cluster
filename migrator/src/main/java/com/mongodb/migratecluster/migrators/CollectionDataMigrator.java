@@ -4,6 +4,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
+import com.mongodb.migratecluster.helpers.ModificationHelper;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.DocumentsBatch;
 import com.mongodb.migratecluster.model.Resource;
@@ -42,12 +43,12 @@ public class CollectionDataMigrator extends BaseMigrator {
     final static Logger logger = LoggerFactory.getLogger(CollectionDataMigrator.class);
     private final Object lockObject = new Object();
     private final ConcurrentHashMap<Resource, CollectionDataTracker> oplogDataTrackers;
-    private final Map<String, String> renameOptions;
+    private final ModificationHelper modificationHelper;
     
     public CollectionDataMigrator(ApplicationOptions options) {
         super(options);
         oplogDataTrackers = new ConcurrentHashMap<>();
-        renameOptions = options.getRenames();
+        modificationHelper = new ModificationHelper(options);
     }
 
     /**
@@ -114,11 +115,11 @@ public class CollectionDataMigrator extends BaseMigrator {
                 resourceObservable
                     .map(resource -> {
                         logger.info("found collection {}", resource.getNamespace());
-                        dropTargetCollectionIfRequired(targetClient, resource, renameOptions);
+                        dropTargetCollectionIfRequired(targetClient, resource, modificationHelper);
                         Document latestDocumentId = getOplogStoreLatestDocumentIdForGivenResource(oplogClient, resource);
                         return new DocumentReader(sourceClient, resource, latestDocumentId);
                     })
-                    .map(reader -> new DocumentWriter(targetClient, reader, renameOptions))
+                    .map(reader -> new DocumentWriter(targetClient, reader, modificationHelper))
                     .subscribe(writer -> {
                         writer
                             .map((DocumentsBatch batch) -> {
@@ -200,17 +201,10 @@ public class CollectionDataMigrator extends BaseMigrator {
      * @param client a MongoDB client object to work with collections
      * @param resource a collection in a database
      */
-    private void dropTargetCollectionIfRequired(MongoClient client, Resource resource, Map<String, String> renames) {
+    private void dropTargetCollectionIfRequired(MongoClient client, Resource resource, ModificationHelper modificationHelper) {
         if (options.isDropTarget()) {
-        	String databaseName = resource.getDatabase();
-        	String collectionName = resource.getCollection();
-        	if (renames.containsKey(databaseName)) {
-        		databaseName = renames.get(databaseName);
-        	}
-        	if (renames.containsKey(collectionName)) {
-        		collectionName = renames.get(collectionName);
-        	}
-            MongoDBHelper.dropCollection(client, databaseName, collectionName);
+            Resource mappedResource = modificationHelper.getMappedResource(resource);
+            MongoDBHelper.dropCollection(client, mappedResource.getDatabase(), mappedResource.getCollection());
         }
     }
 
