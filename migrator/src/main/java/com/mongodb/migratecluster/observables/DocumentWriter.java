@@ -99,12 +99,13 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
         Resource mappedResource = modificationHelper.getMappedResource(resource);
     	String namespaceName = mappedResource.getNamespace();
     	if (resource.isEntireDatabase()) {
-    		namespaceName = resource.getDatabase();
+    		namespaceName = mappedResource.getDatabase();
     	}
+    	
         return BaseDocumentWriter.getInstance(client).getMongoCollection(
                 namespaceName,
-                resource.getDatabase(),
-                resource.getCollection());
+                mappedResource.getDatabase(),
+                mappedResource.getCollection());
     }
 
 
