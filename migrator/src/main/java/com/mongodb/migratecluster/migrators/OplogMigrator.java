@@ -96,10 +96,10 @@ public class OplogMigrator extends BaseMigrator {
      * @return a oplog timestamp fetched from the oplog store
      */
     private BsonTimestamp getTimestampFromOplogStore() {
-        if (options.isDropTarget()) {
-            return null;
-        }
-        else {
+//        if (options.isDropTarget()) {
+//            return null;
+//        }
+//        else {
             MongoClient client = this.getOplogClient();
             ReadOnlyTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.migratorName);
             Document document = tracker.getLatestDocument();
@@ -108,7 +108,7 @@ public class OplogMigrator extends BaseMigrator {
                 return null;
             }
             return document.get("ts", BsonTimestamp.class);
-        }
+//        }
     }
 
     /**
