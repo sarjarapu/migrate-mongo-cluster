@@ -13,7 +13,7 @@ public class ModificationHelper {
     private final Map<String, String> renames;
 
     public ModificationHelper(ApplicationOptions options) {
-        this.renames = options.getRenames();
+        this.renames = options.getRenameNamespaces();
     }
 
     public Resource getMappedResource(Resource resource) {
@@ -23,7 +23,7 @@ public class ModificationHelper {
         }
         String mappedNamespace = renames.get(namespace);
         Resource mappedResource = new Resource(mappedNamespace);
-        logger.info("Found mapping for requested resource {}. Returning mapped resource {}", resource, mappedResource);
+        logger.debug("Found mapping for requested resource {}. Returning mapped resource {}", resource, mappedResource);
         return mappedResource;
     }
 
@@ -32,7 +32,7 @@ public class ModificationHelper {
             return namespace;
         }
         String mappedNamespace = renames.get(namespace);
-        logger.info("Found mapping for requested resource {}. Returning mapped resource {}", namespace, mappedNamespace);
+        logger.debug("Found mapping for requested resource {}. Returning mapped resource {}", namespace, mappedNamespace);
         return mappedNamespace;
     }
 }

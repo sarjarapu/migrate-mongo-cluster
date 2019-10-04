@@ -60,6 +60,7 @@ public class OplogMigrator extends BaseMigrator {
      */
     @Override
     public void process() throws AppException {
+        // assumes that timestamp is stored in oplog store from pre-process stage
         BsonTimestamp timestamp = getTimestampFromOplogStore();
         gapWatcher = () -> createGapWatcher();
         gapWatcher.run();
@@ -74,7 +75,7 @@ public class OplogMigrator extends BaseMigrator {
             fetchRecentEntryFromSourceAndSaveToOplogstore();
         }
         else {
-            // get latest timestamp from oplog store
+            // always get latest timestamp from oplog store.
             BsonTimestamp timestamp = getTimestampFromOplogStore();
             if (timestamp == null) {
                 fetchRecentEntryFromSourceAndSaveToOplogstore();
@@ -96,19 +97,14 @@ public class OplogMigrator extends BaseMigrator {
      * @return a oplog timestamp fetched from the oplog store
      */
     private BsonTimestamp getTimestampFromOplogStore() {
-        if (options.isDropTarget()) {
+        MongoClient client = this.getOplogClient();
+        ReadOnlyTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.migratorName);
+        Document document = tracker.getLatestDocument();
+        client.close();
+        if (document == null) {
             return null;
         }
-        else {
-            MongoClient client = this.getOplogClient();
-            ReadOnlyTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.migratorName);
-            Document document = tracker.getLatestDocument();
-            client.close();
-            if (document == null) {
-                return null;
-            }
-            return document.get("ts", BsonTimestamp.class);
-        }
+        return document.get("ts", BsonTimestamp.class);
     }
 
     /**

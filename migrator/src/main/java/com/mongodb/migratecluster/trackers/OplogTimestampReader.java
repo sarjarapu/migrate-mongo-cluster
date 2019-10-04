@@ -2,12 +2,15 @@ package com.mongodb.migratecluster.trackers;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
+import com.mongodb.migratecluster.migrators.OplogMigrator;
 import com.mongodb.migratecluster.model.Resource;
+import com.mongodb.migratecluster.oplog.OplogGapWatcher;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -62,6 +65,19 @@ public class OplogTimestampReader extends ReadOnlyDataTracker {
      */
     @Override
     protected FindIterable<Document> applyQueryModifiers(FindIterable<Document> iterable) {
+        Document filter = getDefaultIgnoreFilter();
+        iterable.filter(filter);
         return iterable.sort(new Document("$natural", -1));
+    }
+
+    private Document getDefaultIgnoreFilter() {
+        List<Document> filters = new ArrayList<>();
+        Document noOpFilter = new Document("op", new Document("$ne", "n"));
+        List<String> systemNamespaces = Arrays.asList("config.$cmd", "admin.$cmd", "admin.system.keys", "config.system.sessions");
+        Document systemFilter = new Document("ns", new Document("$nin", systemNamespaces));
+
+        filters.add(noOpFilter);
+        filters.add(systemFilter);
+        return new Document("$and", filters);
     }
 }

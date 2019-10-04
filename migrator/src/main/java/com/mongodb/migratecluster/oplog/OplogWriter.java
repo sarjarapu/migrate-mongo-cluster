@@ -234,6 +234,9 @@ public class OplogWriter {
         Document find = operation.get("o2", Document.class);
         Document update = operation.get("o", Document.class);
 
+        if (update.containsKey("$v")) {
+            update.remove("$v");
+        }
         return new UpdateOneModel<>(find, update);
     }
 

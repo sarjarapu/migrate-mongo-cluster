@@ -108,8 +108,8 @@ public class ApplicationOptions {
                 ListUtils.select(this.getBlackListFilter(), f -> f.toString()));
     }
 
-    @JsonProperty("renames")
-	public Map<String, String> getRenames() {
+    @JsonProperty("renameNamespaces")
+	public Map<String, String> getRenameNamespaces() {
 		return renames;
 	}
     

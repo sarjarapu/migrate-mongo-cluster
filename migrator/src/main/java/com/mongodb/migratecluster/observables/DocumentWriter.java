@@ -17,7 +17,6 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -103,8 +102,8 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
     	}
         return BaseDocumentWriter.getInstance(client).getMongoCollection(
                 namespaceName,
-                resource.getDatabase(),
-                resource.getCollection());
+                mappedResource.getDatabase(),
+                mappedResource.getCollection());
     }
 
 
