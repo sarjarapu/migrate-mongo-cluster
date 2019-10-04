@@ -159,7 +159,7 @@ public class OplogMigrator extends BaseMigrator {
         OplogWriter writer = new OplogWriter(targetClient, oplogStoreClient, this.migratorName, this.options);
 
         reader
-            .subscribe(ops -> writer.applyOperations(ops));
+                .subscribe(ops -> writer.applyOperations(ops));
     }
 
     /**
@@ -171,9 +171,9 @@ public class OplogMigrator extends BaseMigrator {
 
         watcher = new OplogGapWatcher(sourceClient, oplogStoreClient, this.migratorName);
         watcher
-            .subscribeOn(Schedulers.newThread())
-            .subscribe(gap -> {
-                logger.info(gap.toString());
-            });
+                .subscribeOn(Schedulers.newThread())
+                .subscribe(gap -> {
+                    logger.info(gap.toString());
+                });
     }
 }
