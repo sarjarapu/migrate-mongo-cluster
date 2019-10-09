@@ -23,6 +23,7 @@ public class ApplicationOptions {
     private boolean dropTarget;
     private List<ResourceFilter> blackListFilter;
     private Map<String, String> renames;
+	private boolean changestream;
 
     public ApplicationOptions() {
         sourceCluster = "";
@@ -33,6 +34,7 @@ public class ApplicationOptions {
         dropTarget = false;
         setBlackListFilter(new ArrayList<>());
         setRenames(new HashMap<>());
+        changestream = false;
     }
 
 
@@ -117,4 +119,13 @@ public class ApplicationOptions {
     	this.renames = renames;
     }
 
+	public void setChangestream(boolean b) {
+		this.changestream = b;
+		
+	}
+	
+	@JsonProperty("changestream")
+	public boolean changestream() {
+		return changestream;
+	}
 }

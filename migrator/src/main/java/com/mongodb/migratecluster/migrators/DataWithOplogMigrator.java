@@ -1,5 +1,8 @@
 package com.mongodb.migratecluster.migrators;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 
@@ -12,15 +15,23 @@ import com.mongodb.migratecluster.commandline.ApplicationOptions;
  * A class to help migrate collection data and oplogs from source to target
  */
 public class DataWithOplogMigrator extends BaseMigrator {
-
+	final static Logger logger = LoggerFactory.getLogger(OplogMigrator.class);
+	
     private final CollectionDataMigrator dataMigrator;
-    private final OplogMigrator oplogMigrator;
+    private final BaseMigrator oplogMigrator;
 
     public DataWithOplogMigrator(ApplicationOptions options) {
         super(options);
 
         dataMigrator = new CollectionDataMigrator(options);
-        oplogMigrator = new OplogMigrator(options);
+        logger.info("Setting up");
+        if (options.changestream()) {
+        	logger.info("Changestream Migrator");
+        	oplogMigrator = new ChangestreamMigrator(options);
+        } else {
+        	logger.info("Oplog Migrator");
+        	oplogMigrator = new OplogMigrator(options);
+        }
     }
 
     /**

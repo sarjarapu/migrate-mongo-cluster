@@ -72,11 +72,13 @@ public class OplogWriter {
 
         for(int i = 0; i < operations.size(); i++) {
             Document currentDocument = operations.get(i);
-            String currentNamespace = modificationHelper.getMappedNamespace(currentDocument.getString("ns"));
-
+            String currentNamespace = currentDocument.getString("ns");
+            // Check for blacklisted namespace in the original deployment
             if (!isNamespaceAllowed(currentNamespace)) {
                 continue;
             }
+            // modify namespace via namespacesRename
+            currentNamespace = modificationHelper.getMappedNamespace(currentDocument.getString("ns"));
             if (!currentNamespace.equals(previousNamespace)) {
                 // change of namespace. bulk apply models for previous namespace
                 if (previousNamespace != null && models.size() > 0) {

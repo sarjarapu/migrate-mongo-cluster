@@ -30,6 +30,7 @@ public class InputArgsParser {
             options.addOption("t", "target", true,"target cluster connection string");
             options.addOption("o", "oplog", false,"oplogStore connection string. only required if oplog headroom is small");
             options.addOption("d", "drop", false,"drop target collections before copying");
+            options.addOption("a", "changestream", false, "use changestream for migration of ongoing operations");
 
             areOptionsSet = true;
         }
@@ -81,6 +82,9 @@ public class InputArgsParser {
         }
         if (cmd.hasOption("d")) {
             appOptions.setDropTarget(true);
+        }
+        if (cmd.hasOption("a")) {
+        	appOptions.setChangestream(true);
         }
         return appOptions;
     }
