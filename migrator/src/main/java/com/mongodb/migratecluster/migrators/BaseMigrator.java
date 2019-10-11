@@ -92,4 +92,5 @@ public abstract class BaseMigrator {
      * A method that is invoked before the actual migration process
      */
     public abstract void preprocess();
+    
 }
