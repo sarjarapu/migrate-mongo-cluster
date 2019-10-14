@@ -18,3 +18,8 @@ data
 log
 .idea
 *.iml
+
+# Eclipse files
+.classpath
+.project
+.settings
