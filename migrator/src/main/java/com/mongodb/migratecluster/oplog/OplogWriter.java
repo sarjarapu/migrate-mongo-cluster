@@ -2,6 +2,7 @@ package com.mongodb.migratecluster.oplog;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.MongoClient;
+import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -9,6 +10,7 @@ import com.mongodb.client.model.*;
 import com.mongodb.migratecluster.AppException;
 import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.commandline.ResourceFilter;
+import com.mongodb.migratecluster.helpers.BulkWriteOutput;
 import com.mongodb.migratecluster.helpers.ModificationHelper;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
@@ -23,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * File: OplogWriter
@@ -83,10 +86,14 @@ public class OplogWriter {
             if (!currentNamespace.equals(previousNamespace)) {
                 // change of namespace. bulk apply models for previous namespace
                 if (previousNamespace != null && models.size() > 0) {
-                    BulkWriteResult bulkWriteResult = applyBulkWriteModelsOnCollection(previousNamespace, models);
-                    if (bulkWriteResult != null) {
-                        totalModelsAdded += bulkWriteResult.getDeletedCount() + bulkWriteResult.getModifiedCount() + bulkWriteResult.getInsertedCount();
+                    BulkWriteOutput output = applyBulkWriteModelsOnCollection(previousNamespace, models);
+                    if (operations.size() == output.getSuccessfulWritesCount()) {
+                        logger.debug("all the {} write operations for the {} batch were applied successfully", operations.size(), currentNamespace);
                     }
+                    else {
+                        logger.error("[FATAL] the {} write operations for the {} batch were applied fully; output {}", operations.size(), currentDocument, output.toString());
+                    }
+                    totalModelsAdded += output.getSuccessfulWritesCount();
                     models.clear();
                     // save documents timestamp to oplog tracker
                     saveTimestampToOplogStore(previousDocument);
@@ -101,22 +108,23 @@ public class OplogWriter {
             }
             else {
                 // if the command is $cmd for create index or create collection, there would not be any write model.
-                logger.info(String.format("could not convert the document to model. Give document is [%s]", currentDocument.toJson()));
+                logger.warn(String.format("ignoring oplog entry. could not convert the document to model. Given document is [%s]", currentDocument.toJson()));
             }
         }
 
         if (models.size() > 0) {
-            BulkWriteResult bulkWriteResult = applyBulkWriteModelsOnCollection(previousNamespace, models);
-            if (bulkWriteResult != null) {
-                totalModelsAdded += bulkWriteResult.getDeletedCount() + bulkWriteResult.getModifiedCount() + bulkWriteResult.getInsertedCount();
+            BulkWriteOutput output = applyBulkWriteModelsOnCollection(previousNamespace, models);
+            if (output != null) {
+                totalModelsAdded += output.getSuccessfulWritesCount();
 
                 // save documents timestamp to oplog tracker
                 saveTimestampToOplogStore(previousDocument);
             }
         }
 
+        // TODO: What happens if there is duplicate exception?
         if (totalModelsAdded != totalValidOperations) {
-            logger.warn("total models added {} is not equal to operations injected {}", totalModelsAdded, operations.size());
+            logger.warn("[FATAL] total models added {} is not equal to operations injected {}. grep the logs for BULK-WRITE-RETRY", totalModelsAdded, operations.size());
         }
 
         return totalModelsAdded;
@@ -147,39 +155,72 @@ public class OplogWriter {
                 return false;
             }
         } catch (Exception e) {
-            logger.error("error while testing the namespace is in black list or not");
+            logger.error("error while testing the namespace is in black list or not", e);
             return false;
         }
     }
 
-    private BulkWriteResult applyBulkWriteModelsOnCollection(String namespace,
+    private BulkWriteOutput applyBulkWriteModelsOnCollection(String namespace,
                                  List<WriteModel<Document>> operations)  throws AppException {
         MongoCollection<Document> collection = MongoDBHelper.getCollectionByNamespace(this.targetClient, namespace);
         try{
-            return applyBulkWriteModelsOnCollection(collection, operations);
+            BulkWriteResult bulkWriteResult = applyBulkWriteModelsOnCollection(collection, operations);
+            BulkWriteOutput output = new BulkWriteOutput(bulkWriteResult);
+            return output;
         }
         catch (MongoBulkWriteException err) {
             if (err.getWriteErrors().size() == operations.size()) {
                 // every doc in this batch is error. just move on
-                return null;
+                logger.debug("[IGNORE] Ignoring all the {} write operations for the {} batch as they all failed with duplicate key exception. (already applied previously)", operations.size(), namespace);
+                return new BulkWriteOutput(0,0,0, operations.size(), new ArrayList<>());
             }
-            logger.warn("bulk write of oplog entries failed. applying oplog operations one by one");
-            BulkWriteResult bulkWriteResult = null;
-            for (WriteModel<Document> op : operations) {
-                List<WriteModel<Document>> soloBulkOp = new ArrayList<>();
-                soloBulkOp.add(op);
-                try {
-                    bulkWriteResult = applyBulkWriteModelsOnCollection(collection, soloBulkOp);
-                } catch (Exception soloErr) {
-                    // do nothing
-                }
-            }
-            return bulkWriteResult;
+            logger.warn("[WARN] the {} bulk write operations for the {} batch failed with exceptions. applying them one by one. error: {}", operations.size(), namespace, err.getWriteErrors().toString());
+            return applySoloBulkWriteModelsOnCollection(operations, collection);
         }
         catch (Exception ex) {
-            logger.warn("bulk write of oplog entries failed. doing one by one now");
+            logger.error("[FATAL] unknown exception occurred while apply bulk write options for oplog. err: {}", ex.toString());
         }
         return null;
+    }
+
+    private BulkWriteOutput applySoloBulkWriteModelsOnCollection(List<WriteModel<Document>> operations, MongoCollection<Document> collection) {
+        BulkWriteResult soloResult = null;
+        List<WriteModel<Document>> failedOps = new ArrayList<>();
+        int deletedCount = 0;
+        int modifiedCount = 0;
+        int insertedCount = 0;
+        for (WriteModel<Document> op : operations) {
+            List<WriteModel<Document>> soloBulkOp = new ArrayList<>();
+            soloBulkOp.add(op);
+            try {
+                soloResult = applyBulkWriteModelsOnCollection(collection, soloBulkOp);
+                deletedCount += soloResult.getDeletedCount();
+                modifiedCount += soloResult.getModifiedCount();
+                insertedCount += soloResult.getInsertedCount();
+                logger.info("[BULK-WRITE-RETRY SUCCESS] retried solo op {} on collection: {} produced result: {}",
+                        op.toString(), collection.getNamespace().getFullName(), soloResult.toString());
+                // no errors? keep going
+            } catch (MongoBulkWriteException bwe) {
+                BulkWriteError we = bwe.getWriteErrors().get(0);
+                if (bwe.getMessage().contains("E11000 duplicate key error collection")) {
+                    logger.warn("[BULK-WRITE-RETRY IGNORE] ignoring duplicate key exception for solo op {} on collection: {}; details: {}; error: {}",
+                            op.toString(), collection.getNamespace().getFullName(), we.getDetails().toJson(), bwe.toString());
+                }
+                else {
+                    failedOps.add(op);
+                    logger.error("[BULK-WRITE-RETRY ERROR] error occurred while applying solo op {} on collection: {}; operation: {}; error {}",
+                            op.toString(), collection.getNamespace().getFullName(), we.getDetails().toJson(), bwe.toString());
+                }
+            } catch (Exception soloErr) {
+                failedOps.add(op);
+                logger.error("[BULK-WRITE-RETRY] unknown exception occurred while applying solo op {} on collection: {}; error {}",
+                        op.toString(), collection.getNamespace().getFullName(), soloErr.toString());
+            }
+        }
+        BulkWriteOutput output = new BulkWriteOutput(deletedCount, modifiedCount, insertedCount, 0, failedOps);
+        logger.info("[BULK-WRITE-RETRY] all the {} operations for the batch {} were retried one-by-one. result {}",
+                operations.size(), collection.getNamespace().getFullName(), soloResult.toString());
+        return output;
     }
 
     private BulkWriteResult applyBulkWriteModelsOnCollection(MongoCollection<Document> collection, List<WriteModel<Document>> operations) throws AppException {
@@ -215,8 +256,7 @@ public class OplogWriter {
             case "c":
                 // might have to be individual operation
                 performRunCommand(operation);
-                //TODO performRunCommand
-                // update the last timestamp on oplogStore
+                //TODO update the last timestamp on oplogStore?
                 break;
             case "n":
                 break;
@@ -291,7 +331,6 @@ public class OplogWriter {
             }
         }
     }
-
 
     private void updateIdIndexOperationWithMappedNamespace(Document document, String namespace) {
         if (document.containsKey("idIndex")) {
