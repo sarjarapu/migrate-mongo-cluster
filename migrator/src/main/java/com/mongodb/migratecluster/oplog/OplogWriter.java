@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Set;
 
 /**
  * File: OplogWriter
@@ -115,8 +116,7 @@ public class OplogWriter {
         if (models.size() > 0) {
             BulkWriteOutput output = applyBulkWriteModelsOnCollection(previousNamespace, models);
             if (output != null) {
-                totalModelsAdded += output.getSuccessfulWritesCount();
-
+                totalModelsAdded += output.getSuccessfulWritesCount(); // bulkWriteResult.getUpserts().size();
                 // save documents timestamp to oplog tracker
                 saveTimestampToOplogStore(previousDocument);
             }
@@ -178,9 +178,9 @@ public class OplogWriter {
             return applySoloBulkWriteModelsOnCollection(operations, collection);
         }
         catch (Exception ex) {
-            logger.error("[FATAL] unknown exception occurred while apply bulk write options for oplog. err: {}", ex.toString());
+            logger.error("[FATAL] unknown exception occurred while apply bulk write options for oplog. err: {}. Going to retry individually anyways", ex.toString());
+            return applySoloBulkWriteModelsOnCollection(operations, collection);
         }
-        return null;
     }
 
     private BulkWriteOutput applySoloBulkWriteModelsOnCollection(List<WriteModel<Document>> operations, MongoCollection<Document> collection) {
@@ -189,6 +189,7 @@ public class OplogWriter {
         int deletedCount = 0;
         int modifiedCount = 0;
         int insertedCount = 0;
+        int upsertedCount = 0;
         for (WriteModel<Document> op : operations) {
             List<WriteModel<Document>> soloBulkOp = new ArrayList<>();
             soloBulkOp.add(op);
@@ -197,6 +198,8 @@ public class OplogWriter {
                 deletedCount += soloResult.getDeletedCount();
                 modifiedCount += soloResult.getModifiedCount();
                 insertedCount += soloResult.getInsertedCount();
+                upsertedCount += bulkWriteResult.getUpserts().size();
+              
                 logger.info("[BULK-WRITE-RETRY SUCCESS] retried solo op {} on collection: {} produced result: {}",
                         op.toString(), collection.getNamespace().getFullName(), soloResult.toString());
                 // no errors? keep going
@@ -217,7 +220,7 @@ public class OplogWriter {
                         op.toString(), collection.getNamespace().getFullName(), soloErr.toString());
             }
         }
-        BulkWriteOutput output = new BulkWriteOutput(deletedCount, modifiedCount, insertedCount, 0, failedOps);
+        BulkWriteOutput output = new BulkWriteOutput(deletedCount, modifiedCount, insertedCount, 0, failedOps); //TODO: upsertedCount ??
         logger.info("[BULK-WRITE-RETRY] all the {} operations for the batch {} were retried one-by-one. result {}",
                 operations.size(), collection.getNamespace().getFullName(), soloResult.toString());
         return output;
@@ -270,17 +273,30 @@ public class OplogWriter {
 
     private WriteModel<Document> getInsertWriteModel(Document operation) {
         Document document = operation.get("o", Document.class);
-        return new InsertOneModel<>(document);
+        /*
+         * Change an insert into a replaceOne with upsert=true in case the data got copied before we processed the oplog.
+         */
+        ReplaceOptions options = new ReplaceOptions().upsert(true);
+        Document find = new Document("_id",document.get("_id"));
+        return new ReplaceOneModel<>(find,document,options);
     }
 
     private WriteModel<Document>  getUpdateWriteModel(Document operation) throws AppException {
         Document find = operation.get("o2", Document.class);
         Document update = operation.get("o", Document.class);
-
+      
         if (update.containsKey("$v")) {
-            update.remove("$v");
+          update.remove("$v");
         }
-        return new UpdateOneModel<>(find, update);
+
+        /*
+         * Can only update if the individual fields are $set, otherwise use replace
+         */
+        Set<String> docKeys = update.keySet();
+        if (docKeys.size() == 1 && docKeys.iterator().next().startsWith("$"))
+          return new UpdateOneModel<>(find, update);
+        else
+          return new ReplaceOneModel<>(find, update);
     }
 
     private WriteModel<Document>  getDeleteWriteModel(Document operation) throws AppException {

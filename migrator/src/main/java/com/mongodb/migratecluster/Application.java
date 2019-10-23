@@ -36,6 +36,7 @@ public class Application {
      * @param args command line arguments
      */
     private void run(String[] args) {
+    	logger.info("Runtime -> Java: "+System.getProperty("java.vendor")+ " " + System.getProperty("java.version") + " OS: "+System.getProperty("os.name")+" " +System.getProperty("os.version"));
         ApplicationOptions options = getApplicationOptions(args);
         BaseMigrator migrator = new DataWithOplogMigrator(options);
         try {
