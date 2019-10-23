@@ -219,7 +219,7 @@ public class OplogWriter {
         }
         BulkWriteOutput output = new BulkWriteOutput(deletedCount, modifiedCount, insertedCount, 0, failedOps);
         logger.info("[BULK-WRITE-RETRY] all the {} operations for the batch {} were retried one-by-one. result {}",
-                operations.size(), collection.getNamespace().getFullName(), soloResult.toString());
+                operations.size(), collection.getNamespace().getFullName(), output.toString());
         return output;
     }
 

@@ -39,7 +39,7 @@ public class BulkWriteOutput {
 
     @Override
     public String toString() {
-        return String.format("deletedCount: {}, modifiedCount: {}, insertedCount: {}, duplicateKeyExceptionCount: {}, failedOps: {}",
+        return String.format("deletedCount: %d, modifiedCount: %d, insertedCount: %d, duplicateKeyExceptionCount: %d, failedOps: %s",
                 deletedCount, modifiedCount, insertedCount, duplicateKeyExceptionCount, failedOps.toString());
     }
 }
