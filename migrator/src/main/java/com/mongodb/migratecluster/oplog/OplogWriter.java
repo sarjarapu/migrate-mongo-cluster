@@ -274,7 +274,9 @@ public class OplogWriter {
     private WriteModel<Document> getInsertWriteModel(Document operation) {
         Document document = operation.get("o", Document.class);
         /*
-         * Change an insert into a replaceOne with upsert=true in case the data got copied before we processed the oplog.
+         * If the oplog is large enough, an oplog insert might have already been applied during
+         * initial sync. Setting the operation as insert will throw duplicate key exception during
+         * bulk operation, slowing down the overall performance rate. So use replaceOne with upsert.
          */
         ReplaceOptions options = new ReplaceOptions().upsert(true);
         Document find = new Document("_id",document.get("_id"));
@@ -289,9 +291,7 @@ public class OplogWriter {
           update.remove("$v");
         }
 
-        /*
-         * Can only update if the individual fields are $set, otherwise use replace
-         */
+        // if the update operation is not using $set then use replaceOne
         Set<String> docKeys = update.keySet();
         if (docKeys.size() == 1 && docKeys.iterator().next().startsWith("$"))
           return new UpdateOneModel<>(find, update);
