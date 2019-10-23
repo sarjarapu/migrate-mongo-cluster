@@ -32,7 +32,11 @@ public abstract class BaseMigrator {
      * @return  a MongoClient object pointing to specific cluster
      */
     private MongoClient getMongoClient(String cluster) {
-        String connectionString = String.format("mongodb://%s", cluster);
+    	String connectionString;
+    	if (cluster.startsWith("mongodb://") || cluster.startsWith("mongodb+srv://"))
+    		connectionString = cluster;
+    	else
+    		connectionString = String.format("mongodb://%s", cluster);
         MongoClientURI uri = new MongoClientURI(connectionString);
         return new MongoClient(uri);
     }
