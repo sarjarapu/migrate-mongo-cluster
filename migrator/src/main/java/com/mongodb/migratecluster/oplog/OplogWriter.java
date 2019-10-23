@@ -172,7 +172,7 @@ public class OplogWriter {
             if (err.getWriteErrors().size() == operations.size()) {
                 // every doc in this batch is error. just move on
                 logger.debug("[IGNORE] Ignoring all the {} write operations for the {} batch as they all failed with duplicate key exception. (already applied previously)", operations.size(), namespace);
-                return new BulkWriteOutput(0,0,0, operations.size(), new ArrayList<>());
+                return new BulkWriteOutput(0,0,0, 0, operations.size(), new ArrayList<>());
             }
             logger.warn("[WARN] the {} bulk write operations for the {} batch failed with exceptions. applying them one by one. error: {}", operations.size(), namespace, err.getWriteErrors().toString());
             return applySoloBulkWriteModelsOnCollection(operations, collection);
@@ -198,7 +198,7 @@ public class OplogWriter {
                 deletedCount += soloResult.getDeletedCount();
                 modifiedCount += soloResult.getModifiedCount();
                 insertedCount += soloResult.getInsertedCount();
-                upsertedCount += bulkWriteResult.getUpserts().size();
+                upsertedCount += soloResult.getUpserts().size();
               
                 logger.info("[BULK-WRITE-RETRY SUCCESS] retried solo op {} on collection: {} produced result: {}",
                         op.toString(), collection.getNamespace().getFullName(), soloResult.toString());
@@ -220,7 +220,7 @@ public class OplogWriter {
                         op.toString(), collection.getNamespace().getFullName(), soloErr.toString());
             }
         }
-        BulkWriteOutput output = new BulkWriteOutput(deletedCount, modifiedCount, insertedCount, 0, failedOps); //TODO: upsertedCount ??
+        BulkWriteOutput output = new BulkWriteOutput(deletedCount, modifiedCount, insertedCount, upsertedCount, 0, failedOps); //TODO: upsertedCount ??
         logger.info("[BULK-WRITE-RETRY] all the {} operations for the batch {} were retried one-by-one. result {}",
                 operations.size(), collection.getNamespace().getFullName(), output.toString());
         return output;
