@@ -22,6 +22,14 @@ public class Resource {
         this.collectionOptions = new Document();
     }
 
+
+    public Resource(String namespace) {
+        this();
+        String[] parts = namespace.split("\\.");
+        this.database = parts[0];
+        this.collection = namespace.substring(this.database.length()+1);
+    }
+
     public Resource(String database, String collection) {
         this();
         this.database = database;

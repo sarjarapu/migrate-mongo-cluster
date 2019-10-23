@@ -3,6 +3,7 @@ package com.mongodb.migratecluster.observables;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.migratecluster.helpers.ModificationHelper;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
 import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.model.DocumentsBatch;
@@ -24,16 +25,22 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Date: 4/26/17 5:02 AM
  * Description:
  */
+/**
+ * @author tspin
+ *
+ */
 public class DocumentWriter extends Observable<DocumentsBatch> {
     private final static Logger logger = LoggerFactory.getLogger(DocumentWriter.class);
     private final DocumentReader documentReader;
     private final MongoClient client;
     private final Resource resource;
+    private final ModificationHelper modificationHelper;
 
-    public DocumentWriter(MongoClient client, DocumentReader documentReader) {
+    public DocumentWriter(MongoClient client, DocumentReader documentReader, ModificationHelper modificationHelper) {
         this.client = client;
         this.documentReader = documentReader;
         this.resource = documentReader.getResource();
+        this.modificationHelper = modificationHelper;
     }
 
     @Override
@@ -87,10 +94,17 @@ public class DocumentWriter extends Observable<DocumentsBatch> {
     }
 
     private MongoCollection<Document> getMongoCollection() {
+    	// added support for renaming
+        Resource mappedResource = modificationHelper.getMappedResource(resource);
+    	String namespaceName = mappedResource.getNamespace();
+    	if (resource.isEntireDatabase()) {
+    		namespaceName = mappedResource.getDatabase();
+    	}
+    	
         return BaseDocumentWriter.getInstance(client).getMongoCollection(
-                resource.getNamespace(),
-                resource.getDatabase(),
-                resource.getCollection());
+                namespaceName,
+                mappedResource.getDatabase(),
+                mappedResource.getCollection());
     }
 
 

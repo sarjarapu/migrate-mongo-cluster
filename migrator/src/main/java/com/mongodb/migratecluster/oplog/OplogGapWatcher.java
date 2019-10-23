@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -40,8 +41,8 @@ public class OplogGapWatcher  extends Observable<OplogGap> {
 
     @Override
     protected void subscribeActual(Observer<? super OplogGap> observer) {
-        Document noOpFilter = new Document("op", new Document("$ne", "n"));
-        Document targetFilter = getTargetFilter(noOpFilter);
+        Document filter = getDefaultIgnoreFilter();
+        Document targetFilter = getTargetFilter(filter);
 
         // wait for 5 seconds and then start the interval of 5 seconds
         Observable<Long> observable = Observable
@@ -53,7 +54,7 @@ public class OplogGapWatcher  extends Observable<OplogGap> {
         observable.subscribe(time -> {
                 BsonTimestamp sourceTimestamp = getLatestOplogTimestamp(
                         this.sourceClient,
-                        noOpFilter,
+                        filter,
                         "local",
                         "oplog.rs");
                 BsonTimestamp oplogStoreTimestamp = getLatestOplogTimestamp(
@@ -68,10 +69,21 @@ public class OplogGapWatcher  extends Observable<OplogGap> {
         observable.blockingLast();
     }
 
-    private Document getTargetFilter(Document noOpFilter) {
+    private Document getDefaultIgnoreFilter() {
+        List<Document> filters = new ArrayList<>();
+        Document noOpFilter = new Document("op", new Document("$ne", "n"));
+        List<String> systemNamespaces = Arrays.asList("config.$cmd", "admin.$cmd", "admin.system.keys", "config.system.sessions");
+        Document systemFilter = new Document("ns", new Document("$nin", systemNamespaces));
+
+        filters.add(noOpFilter);
+        filters.add(systemFilter);
+        return new Document("$and", filters);
+    }
+
+    private Document getTargetFilter(Document filter) {
         Document readerFilter = new Document("reader", this.name);
         List<Document> filters = new ArrayList<>();
-        filters.add(noOpFilter);
+        filters.add(filter);
         filters.add(readerFilter);
         return new Document("$and", filters);
     }

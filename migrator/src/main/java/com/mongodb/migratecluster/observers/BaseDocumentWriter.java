@@ -38,7 +38,6 @@ public class BaseDocumentWriter {
     }
 
     protected MongoDatabase getMongoDatabase(String dbName) {
-        // TODO: Concurrent Dictionary ?
         if (mongoDatabaseMap.containsKey(dbName)) {
             return mongoDatabaseMap.get(dbName);
         }
@@ -49,7 +48,6 @@ public class BaseDocumentWriter {
     }
 
     public MongoCollection<Document> getMongoCollection(String namespace, String databaseName, String collectionName) {
-        // TODO: Concurrent Dictionary ?
         if (mongoCollectionMap.containsKey(namespace)) {
             return mongoCollectionMap.get(namespace);
         }
@@ -63,9 +61,6 @@ public class BaseDocumentWriter {
     protected CreateCollectionOptions getCreateCollectionOptions(Document document) {
         CreateCollectionOptions collectionOptions = new CreateCollectionOptions();
 
-        if (document.containsKey("autoIndex")) {
-            collectionOptions.autoIndex(document.getBoolean("autoIndex"));
-        }
         if (document.containsKey("capped")) {
             collectionOptions.capped(document.getBoolean("capped"));
         }
@@ -75,10 +70,6 @@ public class BaseDocumentWriter {
         if (document.containsKey("sizeInBytes")) {
             collectionOptions.sizeInBytes(document.getLong("sizeInBytes"));
         }
-        if (document.containsKey("usePowerOf2Sizes")) {
-            collectionOptions.usePowerOf2Sizes(document.getBoolean("usePowerOf2Sizes"));
-        }
-
         return collectionOptions;
     }
 }
