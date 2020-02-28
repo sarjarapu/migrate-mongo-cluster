@@ -172,7 +172,7 @@ public class OplogWriter {
             if (err.getWriteErrors().size() == operations.size()) {
                 // every doc in this batch is error. just move on
                 logger.debug("[IGNORE] Ignoring all the {} write operations for the {} batch as they all failed with duplicate key exception. (already applied previously)", operations.size(), namespace);
-                return new BulkWriteOutput(0,0,0, operations.size(), new ArrayList<>());
+                return new BulkWriteOutput(0,0,0, 0, operations.size(), new ArrayList<>());
             }
             logger.warn("[WARN] the {} bulk write operations for the {} batch failed with exceptions. applying them one by one. error: {}", operations.size(), namespace, err.getWriteErrors().toString());
             return applySoloBulkWriteModelsOnCollection(operations, collection);
@@ -198,7 +198,7 @@ public class OplogWriter {
                 deletedCount += soloResult.getDeletedCount();
                 modifiedCount += soloResult.getModifiedCount();
                 insertedCount += soloResult.getInsertedCount();
-                upsertedCount += bulkWriteResult.getUpserts().size();
+                upsertedCount += soloResult.getUpserts().size();
               
                 logger.info("[BULK-WRITE-RETRY SUCCESS] retried solo op {} on collection: {} produced result: {}",
                         op.toString(), collection.getNamespace().getFullName(), soloResult.toString());
@@ -220,9 +220,9 @@ public class OplogWriter {
                         op.toString(), collection.getNamespace().getFullName(), soloErr.toString());
             }
         }
-        BulkWriteOutput output = new BulkWriteOutput(deletedCount, modifiedCount, insertedCount, 0, failedOps); //TODO: upsertedCount ??
+        BulkWriteOutput output = new BulkWriteOutput(deletedCount, modifiedCount, insertedCount, upsertedCount, 0, failedOps); //TODO: upsertedCount ??
         logger.info("[BULK-WRITE-RETRY] all the {} operations for the batch {} were retried one-by-one. result {}",
-                operations.size(), collection.getNamespace().getFullName(), soloResult.toString());
+                operations.size(), collection.getNamespace().getFullName(), output.toString());
         return output;
     }
 
@@ -274,7 +274,9 @@ public class OplogWriter {
     private WriteModel<Document> getInsertWriteModel(Document operation) {
         Document document = operation.get("o", Document.class);
         /*
-         * Change an insert into a replaceOne with upsert=true in case the data got copied before we processed the oplog.
+         * If the oplog is large enough, an oplog insert might have already been applied during
+         * initial sync. Setting the operation as insert will throw duplicate key exception during
+         * bulk operation, slowing down the overall performance rate. So use replaceOne with upsert.
          */
         ReplaceOptions options = new ReplaceOptions().upsert(true);
         Document find = new Document("_id",document.get("_id"));
@@ -289,9 +291,7 @@ public class OplogWriter {
           update.remove("$v");
         }
 
-        /*
-         * Can only update if the individual fields are $set, otherwise use replace
-         */
+        // if the update operation is not using $set then use replaceOne
         Set<String> docKeys = update.keySet();
         if (docKeys.size() == 1 && docKeys.iterator().next().startsWith("$"))
           return new UpdateOneModel<>(find, update);

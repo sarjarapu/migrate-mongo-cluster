@@ -36,7 +36,7 @@ public  class MongoDBHelper {
         String[] parts = ns.split("\\.");
         String databaseName = parts[0];
         String collectionName = ns.substring(databaseName.length()+1);
-
+        
         return MongoDBHelper.getCollection(client, databaseName, collectionName);
     }
 
@@ -47,26 +47,22 @@ public  class MongoDBHelper {
             }
             catch (MongoNotPrimaryException | MongoSocketException | MongoNodeIsRecoveringException me){
                 // do a retry
-                // continue; // commented because continue is implicit
                 logger.error("[RETRY] Failed to perform operation. Will retry once; op: {}; error: {}",
                         operation.toJson(), me.toString());
             }
             catch (MongoBulkWriteException bwe) {
                 if (bwe.getMessage().contains("E11000 duplicate key error collection")) {
-                	// Don't report duplicates, they are expected 
-                    //logger.warn("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
-                    //        operation.toJson(), bwe.toString());
+                    logger.debug("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
+                           operation.toJson(), bwe.toString());
                     throw bwe;
-                    // return null;
                 }
                 logger.error("error while performing operation: {}; error: {}", operation.toJson(), bwe.toString());
                 throw bwe;
             }
             catch (MongoWriteException we) {
                 if (we.getMessage().startsWith("E11000 duplicate key error collection")) {
-                	// Don't report duplicates, they are to be expected
-                    //logger.warn("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
-                    //        operation.toJson(), we.toString());
+                    logger.debug("[IGNORE]  Duplicate key exception while performing operation: {}; error: {}",
+                           operation.toJson(), we.toString());
                     return null;
                 }
                 logger.error("error while performing operation: {}; error: {}", operation.toJson(), we.toString());

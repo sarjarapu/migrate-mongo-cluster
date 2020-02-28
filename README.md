@@ -2,36 +2,35 @@
 
 ## About the application
 
-The migrate-mongo-cluster is an application to help you migrate the data from one server to the other. The objective of this application is to help you acheive live migration of the data from source database to target database. This application comes handy especially, when you are in shared cluster and want to change the shard key without unsharding and resharding. 
+The migrate-mongo-cluster is an application to help you migrate the data from one server to the other. The objective of this application is to help you acheive live migration of the data from source database to target database. This application comes handy especially, when you are in shard cluster and want to change the shard key without unsharding and resharding or even rename the namespaces as you migrate.
 
 ## What / How it does
 
-From technical stand point of view, the application reads data document by document from the source database and writes them into the target database. The application also tails the oplog and reapply them on target once it copied all data. 
+From technical stand point of view, the application reads data document by document from the source database and writes them into the target database. The application also tails the oplog and reapply them on target once it copied all data. If you are using `renameNamespaces` settings in the config file then the documents or the oplogs are renamed as they are applied on the target.
 
 ## Word of caution
 
-Ideally, one should be using a backup of existing database, restore it to the server were you wanted to migrate, let the oplog catchup and re-elect the new server as primary. If for whatever reason, you cannot acheive the above recommended approach, you may use this application to do the migration, **at your own risk!**
+Ideally, one should be using a backup of existing database, restore it to the server were you wanted to migrate, let the oplog catchup and re-elect the new server as primary. If for whatever reason, you cannot acheive the above recommended approach, you may use this application to do the migration, **at your own risk!** This application is not supported by MongoDB Technical Support Engineers.
 
 ## Assumptions
 
 ### Disable the balancer during the migration process
 
-If you are on shareded cluser, please make sure to [disable the balancer](https://docs.mongodb.com/manual/tutorial/manage-sharded-cluster-balancer/#sharding-balancing-disable-temporarily) for the entire duration of the migation. 
+If you are on sharded cluser, please make sure to [disable the balancer](https://docs.mongodb.com/manual/tutorial/manage-sharded-cluster-balancer/#sharding-balancing-disable-temporarily) for the entire duration of the migation.
 
 ### OplogSize is big enough to hold entries for the entire duration
 
 This application records the recent oplog entry on the replica set at the time of first run (or everytime if `drop` option is set). Once the application copies all the data from source onto the target, it tails the source oplog from the recorded oplog timestamp. For the migration process to successfully complete, it's crucial to have oplog big enough to accomidate the operations for the anticipated duration of the process. Please refer to the MongoDB documentation, [Change the Size of the Oplog](https://docs.mongodb.com/manual/tutorial/change-oplog-size/index.html) to an appropriate value.
 
-
 ### Collections, Indexes and Users needs to be precreated
 
-While migrating the data from source to target, it is assumed that all the indexes of your interest are precreated on target before beginning the migration. 
+While migrating the data from source to target, it is assumed that all the indexes of your interest are precreated on target before beginning the migration.
 
 If you are planning to change the shard key then the application assumes that you configured the sharded collections accordingly.
 
 ### Script to precreate collections and indexes
 
-You may use the below script to help generate code for creating the collections and the indexes for target. 
+You may use the below script to help generate code for creating the collections and the indexes for target.
 
 - Open the MongoDB shell connected to the source
 - Copy paste the script (below) in the MongoDB shell
