@@ -47,6 +47,9 @@ public class OplogWriter {
     private final DatabaseFilterPredicate databasePredicate;
     private final CollectionFilterPredicate collectionPredicate;
     private final ModificationHelper modificationHelper;
+    
+    private Long batchCount;
+    private Long saveFrequency;
 
     public OplogWriter(MongoClient targetClient, MongoClient oplogStoreClient, String reader, ApplicationOptions options) {
         this.targetClient = targetClient;
@@ -59,6 +62,9 @@ public class OplogWriter {
         databasePredicate = new DatabaseFilterPredicate(blacklistFilter);
         collectionPredicate = new CollectionFilterPredicate(blacklistFilter);
         modificationHelper = new ModificationHelper(options);
+        
+        batchCount = 0L;
+        saveFrequency = options.getSaveFrequency();
     }
 
     /**
@@ -169,11 +175,12 @@ public class OplogWriter {
             return output;
         }
         catch (MongoBulkWriteException err) {
-            if (err.getWriteErrors().size() == operations.size()) {
-                // every doc in this batch is error. just move on
-                logger.debug("[IGNORE] Ignoring all the {} write operations for the {} batch as they all failed with duplicate key exception. (already applied previously)", operations.size(), namespace);
-                return new BulkWriteOutput(0,0,0, 0, operations.size(), new ArrayList<>());
-            }
+/*            if (err.getWriteErrors().size() == operations.size()) {
+ *               // every doc in this batch is error. just move on
+ *               logger.debug("[IGNORE] Ignoring all the {} write operations for the {} batch as they all failed with duplicate key exception. (already applied previously)", operations.size(), namespace);
+ *               return new BulkWriteOutput(0,0,0, 0, operations.size(), new ArrayList<>());
+ *           }
+ */
             logger.warn("[WARN] the {} bulk write operations for the {} batch failed with exceptions. applying them one by one. error: {}", operations.size(), namespace, err.getWriteErrors().toString());
             return applySoloBulkWriteModelsOnCollection(operations, collection);
         }
@@ -361,7 +368,12 @@ public class OplogWriter {
      * @param document a document representing the fields that need to be set
      */
     protected void saveTimestampToOplogStore(Document document) {
-        WritableDataTracker tracker = new OplogTimestampTracker(oplogStoreClient, oplogTrackerResource, this.reader);
-        tracker.updateLatestDocument(document);
+    	logger.debug("Update Oplog Store2 called call {}.",this.batchCount);
+    	if (this.batchCount % this.saveFrequency == 0L) {
+	        WritableDataTracker tracker = new OplogTimestampTracker(oplogStoreClient, oplogTrackerResource, this.reader);
+	        tracker.updateLatestDocument(document);
+	        logger.debug("Oplog2 Tracker updated");
+    	}
+    	this.batchCount++;
     }
 }

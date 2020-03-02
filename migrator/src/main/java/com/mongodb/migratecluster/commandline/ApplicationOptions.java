@@ -23,6 +23,7 @@ public class ApplicationOptions {
     private boolean dropTarget;
     private List<ResourceFilter> blackListFilter;
     private Map<String, String> renames;
+    private Long saveFrequency;
 
     public ApplicationOptions() {
         sourceCluster = "";
@@ -31,6 +32,7 @@ public class ApplicationOptions {
         configFilePath = "";
         showHelp = false;
         dropTarget = false;
+        saveFrequency = 1L;
         setBlackListFilter(new ArrayList<>());
         setRenames(new HashMap<>());
     }
@@ -116,5 +118,12 @@ public class ApplicationOptions {
     public void setRenames(Map<String, String> renames) {
     	this.renames = renames;
     }
-
+    
+    @JsonProperty("saveFrequency")
+    public void setSaveFrequency(Long saveFrequency) {
+    	this.saveFrequency = saveFrequency;
+    }
+    public Long getSaveFrequency() {
+    	return saveFrequency;
+    }
 }

@@ -34,11 +34,16 @@ public class OplogMigrator extends BaseMigrator {
     private final Resource oplogTrackerResource;
     private final Resource oplogRsResource;
     private Runnable gapWatcher;
+    private Long batchCount;
+    private Long saveFrequency;
 
     public OplogMigrator(ApplicationOptions options) {
         super(options);
         oplogTrackerResource = new Resource("migrate-mongo", "oplog.tracker");
         oplogRsResource = new Resource("local", "oplog.rs");
+        batchCount = 0L;
+        saveFrequency = options.getSaveFrequency();
+        
     }
 
     /**
@@ -126,10 +131,15 @@ public class OplogMigrator extends BaseMigrator {
      * @param document a document representing the fields that need to be set
      */
     private void saveTimestampToOplogStore(Document document) {
-        MongoClient client = this.getOplogClient();
-        WritableDataTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.migratorName);
-        tracker.updateLatestDocument(document);
-        client.close();
+    	logger.debug("Update Oplog Store called call {}.",this.batchCount);
+    	if (this.batchCount % this.saveFrequency == 0L) {
+	        MongoClient client = this.getOplogClient();
+	        WritableDataTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.migratorName);
+	        tracker.updateLatestDocument(document);
+	        client.close();
+	        logger.debug("Oplog Tracker updated");
+    	}
+    	this.batchCount++;
     }
 
     /**
