@@ -46,7 +46,7 @@ public class OplogMigrator extends BaseMigrator {
         
     }
 
-    /**
+    /***
      * A method that is invoked before the actual migration process
      */
     @Override
