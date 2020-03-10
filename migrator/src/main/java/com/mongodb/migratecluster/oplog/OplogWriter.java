@@ -49,7 +49,7 @@ public class OplogWriter {
     private final ModificationHelper modificationHelper;
     
     private Long batchCount;
-    private Long saveFrequency; 
+    private Long saveFrequency;
 
     public OplogWriter(MongoClient targetClient, MongoClient oplogStoreClient, String reader, ApplicationOptions options) {
         this.targetClient = targetClient;

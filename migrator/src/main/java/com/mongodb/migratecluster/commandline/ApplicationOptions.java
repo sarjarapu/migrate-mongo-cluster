@@ -29,7 +29,7 @@ public class ApplicationOptions {
         sourceCluster = "";
         targetCluster = "";
         oplogStore = "";
-        configFilePath = ""; 
+        configFilePath = "";
         showHelp = false;
         dropTarget = false;
         saveFrequency = 1L;
