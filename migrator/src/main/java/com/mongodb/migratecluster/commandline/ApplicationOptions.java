@@ -25,6 +25,7 @@ public class ApplicationOptions {
     private Map<String, String> renames;
     private Long saveFrequency;
     private boolean oplogOnly;
+    private String saveOplogTag;
     private List<ResourceFilter> whiteListFilter;
 
     public ApplicationOptions() {
@@ -36,6 +37,7 @@ public class ApplicationOptions {
         dropTarget = false;
         oplogOnly = false;
         saveFrequency = 1L;
+        saveOplogTag = "";
         setBlackListFilter(new ArrayList<>());
         setWhiteListFilter(new ArrayList<>());
         setRenames(new HashMap<>());
@@ -126,11 +128,11 @@ public class ApplicationOptions {
     public String toString() {
         return String.format("{ showHelp : %s, configFilePath: \"%s\", " +
                 " sourceCluster: \"%s\", targetCluster: \"%s\", " +
-                " oplog: \"%s\", drop: %s, oplogOnly: %s, saveFrequency: %s, " +
+                " oplog: \"%s\", drop: %s, oplogOnly: %s, saveFrequency: %s, saveOplogTag: %s" +
                 "blackListFilter: %s, whiteListFilter: %s }",
                 this.isShowHelp(), this.getConfigFilePath(), this.getSourceCluster(),
                 this.getTargetCluster(), this.getOplogStore(), this.isDropTarget(),
-                this.isOplogOnly(),this.getSaveFrequency(),
+                this.isOplogOnly(),this.getSaveFrequency(), this.getSaveOplogTag(),
                 ListUtils.select(this.getBlackListFilter(), f -> f.toString()),
                 ListUtils.select(this.getWhiteListFilter(), f -> f.toString()));
     }
@@ -150,5 +152,13 @@ public class ApplicationOptions {
     }
     public Long getSaveFrequency() {
     	return saveFrequency;
+    }
+    
+    @JsonProperty("saveOplogTag")
+    public void setSaveOplogTag(String saveOplogTag) {
+    	this.saveOplogTag = saveOplogTag;
+    }
+    public String getSaveOplogTag() {
+    	return saveOplogTag;
     }
 }

@@ -33,13 +33,22 @@ public class OplogMigrator extends BaseMigrator {
 
     private final Resource oplogTrackerResource;
     private final Resource oplogRsResource;
+    private final String myMigratorName;
     private Runnable gapWatcher;
     private Long batchCount;
     private Long saveFrequency;
 
     public OplogMigrator(ApplicationOptions options) {
         super(options);
+        String olt = options.getSaveOplogTag();
+        if (!olt.contentEquals(""))
+        	this.myMigratorName = this.migratorName.concat("&tag="+olt);
+        else 
+        	this.myMigratorName = this.migratorName;
+        
         oplogTrackerResource = new Resource("migrate-mongo", "oplog.tracker");
+
+        
         oplogRsResource = new Resource("local", "oplog.rs");
         batchCount = 0L;
         saveFrequency = options.getSaveFrequency();
@@ -103,7 +112,7 @@ public class OplogMigrator extends BaseMigrator {
      */
     private BsonTimestamp getTimestampFromOplogStore() {
         MongoClient client = this.getOplogClient();
-        ReadOnlyTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.migratorName);
+        ReadOnlyTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.myMigratorName);
         Document document = tracker.getLatestDocument();
         client.close();
         if (document == null) {
@@ -134,7 +143,7 @@ public class OplogMigrator extends BaseMigrator {
     	logger.debug("Update Oplog Store called call {}.",this.batchCount);
     	if (this.batchCount % this.saveFrequency == 0L) {
 	        MongoClient client = this.getOplogClient();
-	        WritableDataTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.migratorName);
+	        WritableDataTracker tracker = new OplogTimestampTracker(client, oplogTrackerResource, this.myMigratorName);
 	        tracker.updateLatestDocument(document);
 	        client.close();
 	        logger.debug("Oplog Tracker updated");
@@ -166,7 +175,7 @@ public class OplogMigrator extends BaseMigrator {
         MongoClient oplogStoreClient = getOplogClient();
         logger.info("copyOplogsFromSourceToOplogstore timestamp: {}", lastTimestamp);
         OplogBufferedReader reader = new OplogBufferedReader(sourceClient, lastTimestamp, this.options);
-        OplogWriter writer = new OplogWriter(targetClient, oplogStoreClient, this.migratorName, this.options);
+        OplogWriter writer = new OplogWriter(targetClient, oplogStoreClient, this.myMigratorName, this.options);
 
         reader
                 .subscribe(ops -> writer.applyOperations(ops));
@@ -179,7 +188,7 @@ public class OplogMigrator extends BaseMigrator {
         MongoClient sourceClient = getSourceClient();
         MongoClient oplogStoreClient = getOplogClient();
 
-        watcher = new OplogGapWatcher(sourceClient, oplogStoreClient, this.migratorName);
+        watcher = new OplogGapWatcher(sourceClient, oplogStoreClient, this.myMigratorName);
         watcher
                 .subscribeOn(Schedulers.newThread())
                 .subscribe(gap -> {

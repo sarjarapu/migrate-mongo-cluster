@@ -45,7 +45,8 @@ public class OplogGapWatcher  extends Observable<OplogGap> {
         Document targetFilter = getTargetFilter(filter);
 
         // wait for 5 seconds and then start the interval of 5 seconds
-        Observable<Long> observable = Observable
+        @SuppressWarnings("static-access")
+		Observable<Long> observable = Observable
                 .timer(5, TimeUnit.SECONDS)
                 .interval(5, TimeUnit.SECONDS)
                 .observeOn(Schedulers.io())
