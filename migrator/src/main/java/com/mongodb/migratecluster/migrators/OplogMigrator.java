@@ -165,7 +165,7 @@ public class OplogMigrator extends BaseMigrator {
         MongoClient targetClient = getTargetClient();
         MongoClient oplogStoreClient = getOplogClient();
         logger.info("copyOplogsFromSourceToOplogstore timestamp: {}", lastTimestamp);
-        OplogBufferedReader reader = new OplogBufferedReader(sourceClient, lastTimestamp);
+        OplogBufferedReader reader = new OplogBufferedReader(sourceClient, lastTimestamp, this.options);
         OplogWriter writer = new OplogWriter(targetClient, oplogStoreClient, this.migratorName, this.options);
 
         reader

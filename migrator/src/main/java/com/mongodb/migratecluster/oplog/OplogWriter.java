@@ -94,8 +94,8 @@ public class OplogWriter {
                 // change of namespace. bulk apply models for previous namespace
                 if (previousNamespace != null && models.size() > 0) {
                     BulkWriteOutput output = applyBulkWriteModelsOnCollection(previousNamespace, models);
-                    if (operations.size() == output.getSuccessfulWritesCount()) {
-                        logger.debug("all the {} write operations for the {} batch were applied successfully", operations.size(), currentNamespace);
+                    if (models.size() == output.getSuccessfulWritesCount()) {
+                        logger.info("all the {} write operations for the {} batch were applied successfully", models.size(), previousNamespace);
                     }
                     else {
                         logger.error("[FATAL] the {} write operations for the {} batch were applied fully; output {}", operations.size(), currentDocument, output.toString());
@@ -122,7 +122,9 @@ public class OplogWriter {
         if (models.size() > 0) {
             BulkWriteOutput output = applyBulkWriteModelsOnCollection(previousNamespace, models);
             if (output != null) {
-                totalModelsAdded += output.getSuccessfulWritesCount(); // bulkWriteResult.getUpserts().size();
+            	int numSuccessfull = output.getSuccessfulWritesCount();
+            	logger.info(" {} operations applied for namespace {}.", numSuccessfull, previousNamespace);
+                totalModelsAdded += numSuccessfull ; // bulkWriteResult.getUpserts().size();
                 // save documents timestamp to oplog tracker
                 saveTimestampToOplogStore(previousDocument);
             }
@@ -131,6 +133,9 @@ public class OplogWriter {
         // TODO: What happens if there is duplicate exception?
         if (totalModelsAdded != totalValidOperations) {
             logger.warn("[FATAL] total models added {} is not equal to operations injected {}. grep the logs for BULK-WRITE-RETRY", totalModelsAdded, operations.size());
+        }
+        else {
+
         }
 
         return totalModelsAdded;

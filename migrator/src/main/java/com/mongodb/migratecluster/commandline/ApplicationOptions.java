@@ -24,6 +24,8 @@ public class ApplicationOptions {
     private List<ResourceFilter> blackListFilter;
     private Map<String, String> renames;
     private Long saveFrequency;
+    private boolean oplogOnly;
+    private List<ResourceFilter> whiteListFilter;
 
     public ApplicationOptions() {
         sourceCluster = "";
@@ -32,8 +34,10 @@ public class ApplicationOptions {
         configFilePath = "";
         showHelp = false;
         dropTarget = false;
+        oplogOnly = false;
         saveFrequency = 1L;
         setBlackListFilter(new ArrayList<>());
+        setWhiteListFilter(new ArrayList<>());
         setRenames(new HashMap<>());
     }
 
@@ -91,6 +95,15 @@ public class ApplicationOptions {
         this.dropTarget = dropTarget;
     }
 
+    @JsonProperty("oplogOnly")
+    public boolean isOplogOnly() {
+        return oplogOnly;
+    }
+
+    public void setOplogOnly(boolean oplogOnly) {
+        this.oplogOnly = oplogOnly;
+    }
+    
     @JsonProperty("blackListFilter")
     public List<ResourceFilter> getBlackListFilter() {
         return blackListFilter;
@@ -100,14 +113,26 @@ public class ApplicationOptions {
         this.blackListFilter = blackListFilter;
     }
 
+    @JsonProperty("whiteListFilter")
+    public List<ResourceFilter> getWhiteListFilter() {
+        return whiteListFilter;
+    }
+
+    public void setWhiteListFilter(List<ResourceFilter> whiteListFilter) {
+        this.whiteListFilter = whiteListFilter;
+    }
+    
     @Override
     public String toString() {
         return String.format("{ showHelp : %s, configFilePath: \"%s\", " +
                 " sourceCluster: \"%s\", targetCluster: \"%s\", " +
-                ", oplog: \"%s\", drop: %s, blackListFilter: %s }",
+                " oplog: \"%s\", drop: %s, oplogOnly: %s, saveFrequency: %s, " +
+                "blackListFilter: %s, whiteListFilter: %s }",
                 this.isShowHelp(), this.getConfigFilePath(), this.getSourceCluster(),
                 this.getTargetCluster(), this.getOplogStore(), this.isDropTarget(),
-                ListUtils.select(this.getBlackListFilter(), f -> f.toString()));
+                this.isOplogOnly(),this.getSaveFrequency(),
+                ListUtils.select(this.getBlackListFilter(), f -> f.toString()),
+                ListUtils.select(this.getWhiteListFilter(), f -> f.toString()));
     }
 
     @JsonProperty("renameNamespaces")

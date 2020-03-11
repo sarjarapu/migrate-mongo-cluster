@@ -5,7 +5,9 @@ import com.mongodb.MongoClient;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.migratecluster.commandline.ApplicationOptions;
 import com.mongodb.migratecluster.helpers.MongoDBHelper;
+import com.mongodb.migratecluster.model.Resource;
 import com.mongodb.migratecluster.utils.Timer;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
@@ -34,17 +36,19 @@ public class OplogBufferedReader extends Observable<List<Document>> {
     private final BsonTimestamp lastTimeStamp;
     private final int BUFFER_SIZE = 1000;
     private final Object lockObject = new Object();
+    private final ApplicationOptions options;
 
     private final AtomicInteger counter = new AtomicInteger(0);
     private final ConcurrentLinkedQueue<Document> queue;
 
     final static Logger logger = LoggerFactory.getLogger(OplogBufferedReader.class);
 
-    public OplogBufferedReader(MongoClient client, BsonTimestamp lastTimeStamp) {
+    public OplogBufferedReader(MongoClient client, BsonTimestamp lastTimeStamp, ApplicationOptions options) {
         this.client = client;
         this.lastTimeStamp = lastTimeStamp;
         this.queue = new ConcurrentLinkedQueue<>();
         this.client.setReadPreference(ReadPreference.secondaryPreferred());
+        this.options = options;
     }
 
     @Override
@@ -112,16 +116,21 @@ public class OplogBufferedReader extends Observable<List<Document>> {
      */
     private Document getFindQuery() {
         Document noOpFilter = new Document("op", new Document("$ne", "n"));
+        if (this.options.getWhiteListFilter().size() > 0) {
+        	List<String> nss = new ArrayList<>();
+        	for (Resource resource : this.options.getWhiteListFilter())
+        		nss.add(resource.getNamespace());
+        	
+        	Document inList = new Document("$in", nss);
+        	noOpFilter.append("ns", inList);
+        }
         if (lastTimeStamp == null) {
             return noOpFilter;
         }
         else{
-            Document timestampFilter = new Document("ts", new Document("$gt", lastTimeStamp));
-            List<Document> filters = new ArrayList<>();
-            filters.add(noOpFilter);
-            filters.add(timestampFilter);
+            noOpFilter.append("ts", new Document("$gt", lastTimeStamp));
 
-            return new Document("$and", filters);
+            return noOpFilter;
         }
     }
 

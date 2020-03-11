@@ -6,9 +6,12 @@ import com.mongodb.migratecluster.commandline.ApplicationOptionsLoader;
 import com.mongodb.migratecluster.commandline.InputArgsParser;
 import com.mongodb.migratecluster.migrators.BaseMigrator;
 import com.mongodb.migratecluster.migrators.DataWithOplogMigrator;
+import com.mongodb.migratecluster.migrators.OplogMigrator;
 import com.mongodb.migratecluster.utils.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
+
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,9 +41,14 @@ public class Application {
     private void run(String[] args) {
     	logger.info("Runtime -> Java: "+System.getProperty("java.vendor")+ " " + System.getProperty("java.version") + " OS: "+System.getProperty("os.name")+" " +System.getProperty("os.version"));
         ApplicationOptions options = getApplicationOptions(args);
-        BaseMigrator migrator = new DataWithOplogMigrator(options);
+
+        BaseMigrator migrator = null;
+        if (options.isOplogOnly())
+        	migrator = new OplogMigrator(options);
+        else
+        	migrator = new DataWithOplogMigrator(options);
         try {
-            migrator.preprocess();
+        	migrator.preprocess();	
             migrator.process();
         } catch (AppException e) {
             logger.error(e.getMessage());
@@ -78,6 +86,18 @@ public class Application {
         }
 
         logger.info("Application Options: {}", appOptions.toString());
+        if (appOptions.getBlackListFilter().size() > 0 && appOptions.getWhiteListFilter().size() > 0) {
+        	logger.error("Can't specify BlackList and WhiteList" );
+        	System.exit(1);
+        }
+        if (appOptions.getWhiteListFilter().size() > 0 && !appOptions.isOplogOnly()) {
+        	logger.error("WhiteList in use, oplogOnly must be selected.");
+        	System.exit(1);
+        }
+        if(appOptions.isDropTarget() && appOptions.isOplogOnly()) {
+        	logger.error("oplogOnly can't be used if the target is dropped.");
+        	System.exit(1);
+        }
         return appOptions;
     }
 
