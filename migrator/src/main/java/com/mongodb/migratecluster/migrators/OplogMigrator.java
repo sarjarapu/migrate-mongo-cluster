@@ -15,6 +15,7 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -76,6 +77,8 @@ public class OplogMigrator extends BaseMigrator {
     public void process() throws AppException {
         // assumes that timestamp is stored in oplog store from pre-process stage
         BsonTimestamp timestamp = getTimestampFromOplogStore();
+        Date startDate = new Date((long)timestamp.getTime()*1000L);
+        logger.info("Processing oplog from {} ({}).",startDate.toString(),timestamp.toString());
         gapWatcher = () -> createGapWatcher();
         gapWatcher.run();
         this.copyOplogsFromSourceToOplogstore(timestamp);
