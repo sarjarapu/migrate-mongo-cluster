@@ -63,6 +63,7 @@ public class OplogBufferedReader extends Observable<List<Document>> {
                         .sort(new Document("$natural", 1))
                         .cursorType(CursorType.Tailable)
                         .cursorType(CursorType.TailableAwait)
+                        .oplogReplay(true)
                         .noCursorTimeout(true)
                         .iterator();
 
@@ -87,6 +88,7 @@ public class OplogBufferedReader extends Observable<List<Document>> {
                 timer.reset();
             }
         }
+        logger.error("Cursor ended");
     }
 
     /**
