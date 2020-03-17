@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class OplogBufferedReader extends Observable<List<Document>> {
     private final MongoClient client;
     private final BsonTimestamp lastTimeStamp;
-    private final int BUFFER_SIZE = 1000;
+    private  int BUFFER_SIZE = 1000;
     private final Object lockObject = new Object();
     private final ApplicationOptions options;
 
@@ -49,7 +49,8 @@ public class OplogBufferedReader extends Observable<List<Document>> {
         this.queue = new ConcurrentLinkedQueue<>();
         this.client.setReadPreference(ReadPreference.secondaryPreferred());
         this.options = options;
-    }
+        this.BUFFER_SIZE = options.getBatchSize().intValue();
+        }
 
     @Override
     protected void subscribeActual(Observer<? super List<Document>> observer) {

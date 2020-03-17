@@ -26,6 +26,7 @@ public class ApplicationOptions {
     private Long saveFrequency;
     private boolean oplogOnly;
     private String saveOplogTag;
+    private Long batchSize;
     private List<ResourceFilter> whiteListFilter;
 
     public ApplicationOptions() {
@@ -38,6 +39,7 @@ public class ApplicationOptions {
         oplogOnly = false;
         saveFrequency = 1L;
         saveOplogTag = "";
+        batchSize = 1000L;
         setBlackListFilter(new ArrayList<>());
         setWhiteListFilter(new ArrayList<>());
         setRenames(new HashMap<>());
@@ -127,11 +129,11 @@ public class ApplicationOptions {
     @Override
     public String toString() {
         return String.format("{ showHelp : %s, configFilePath: \"%s\", " +
-                " sourceCluster: \"%s\", targetCluster: \"%s\", " +
+                " sourceCluster: \"%s\", targetCluster: \"%s\", batchSize: %s," +
                 " oplog: \"%s\", drop: %s, oplogOnly: %s, saveFrequency: %s, saveOplogTag: %s" +
                 "blackListFilter: %s, whiteListFilter: %s }",
                 this.isShowHelp(), this.getConfigFilePath(), this.getSourceCluster(),
-                this.getTargetCluster(), this.getOplogStore(), this.isDropTarget(),
+                this.getTargetCluster(), this.getBatchSize(),this.getOplogStore(), this.isDropTarget(),
                 this.isOplogOnly(),this.getSaveFrequency(), this.getSaveOplogTag(),
                 ListUtils.select(this.getBlackListFilter(), f -> f.toString()),
                 ListUtils.select(this.getWhiteListFilter(), f -> f.toString()));
@@ -160,5 +162,13 @@ public class ApplicationOptions {
     }
     public String getSaveOplogTag() {
     	return saveOplogTag;
+    }
+    
+    @JsonProperty("batchSize")
+    public void setBatchSize(Long batchSize) {
+    	this.batchSize = batchSize;
+    }
+    public Long getBatchSize() {
+    	return batchSize ;
     }
 }
